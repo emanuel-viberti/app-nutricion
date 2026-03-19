@@ -294,102 +294,39 @@ if st.button("🚀 GENERAR PLAN SEMANAL", key="btn_generar_v2"):
         historial_ayc = (historial_ayc + [almuerzo["nombre"], cena["nombre"]])[-6:]
         historial_dym = (historial_dym + [dym_hoy[0]["nombre"], dym_hoy[1]["nombre"]])[-6:]
 
-# --- 7. VISUALIZACIÓN Y DESCARGA ---
+# --- 7. VISUALIZACIÓN Y DESCARGA (CORREGIDO) ---
 if st.session_state.menu:
+    st.subheader("Vista Previa del Plan")
     for dia, comidas in st.session_state.menu.items():
-        with st.expander(f"📅 {dia}"):
-            for tiempo, plato in comidas.items():
-                if tiempo != "Colaciones":
-                    st.write(f"🍴 **{tiempo}:** {plato['nombre']}")
-    
-    st.divider()
-    # Aquí llamamos a la función de PDF con el diccionario que tiene la Edad corregida
-    pdf_bytes = generar_pdf(
-        nutri_info, 
-        datos_antropometricos, 
-        st.session_state.menu, 
-        {"diag": diag, "t_plan": t_plan, "kcal": kcal_final}
-    )
-    
-    st.download_button(
-        label="💾 DESCARGAR PLAN PROFESIONAL",
-        data=pdf_bytes,
-        file_name=f"Plan_{nombre_pac.replace(' ', '_')}.pdf",
-        mime="application/pdf"
-    )
-
-# --- 6. MENÚ ---
-st.divider()
-c_a, c_b = st.columns(2)
-alm_trabajo = c_a.checkbox("Almuerzo en el trabajo", key="check_trabajo")
-colaciones_on = c_b.checkbox("Incluir colaciones (Mañana y Tarde)", key="check_colaciones")
-
-if st.button("🚀 GENERAR PLAN SIN REPETICIONES", key="btn_generar"):
-    dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-    st.session_state.menu = {}
-    
-    # HISTORIAL DE 3 DÍAS PARA EVITAR REPETICIONES CORTAS
-    historial_ayc = []
-    historial_dym = []
-    historial_col = []
-
-    for d in dias:
-        # Selección Desayuno/Merienda
-        pool_dym = [x for x in st.session_state.db["dym"] if x["nombre"] not in historial_dym]
-        dym_hoy = random.sample(pool_dym if len(pool_dym) >= 2 else st.session_state.db["dym"], 2)
-        
-        # Selección Almuerzo/Cena
-        if alm_trabajo:
-            pool_trab = [x for x in st.session_state.db["trabajo"] if x["nombre"] not in historial_ayc]
-            almuerzo = random.choice(pool_trab if pool_trab else st.session_state.db["trabajo"])
-            pool_cena = [x for x in st.session_state.db["ayc"] if x["nombre"] not in historial_ayc and x["nombre"] != almuerzo["nombre"]]
-            cena = random.choice(pool_cena if pool_cena else st.session_state.db["ayc"])
-        else:
-            pool_ayc = [x for x in st.session_state.db["ayc"] if x["nombre"] not in historial_ayc]
-            ayc_hoy = random.sample(pool_ayc if len(pool_ayc) >= 2 else st.session_state.db["ayc"], 2)
-            almuerzo, cena = ayc_hoy[0], ayc_hoy[1]
+        with st.expander(f"📅 {dia.upper()}"):
+            # Definimos el orden lógico de visualización
+            orden_visual = ["Desayuno", "Colacion_M", "Almuerzo", "Merienda", "Colacion_T", "Cena"]
             
-        # Selección Colaciones
-        if colaciones_on:
-            pool_col = [x for x in st.session_state.db["col"] if x["nombre"] not in historial_col]
-            cols_hoy = random.sample(pool_col if len(pool_col) >= 2 else st.session_state.db["col"], 2)
-        else:
-            cols_hoy = []
-
-        st.session_state.menu[d] = {
-            "Desayuno": dym_hoy[0], "Almuerzo": almuerzo, "Merienda": dym_hoy[1], "Cena": cena, "Colaciones": cols_hoy
-        }
-        
-        # Actualizar historial (mantenemos los últimos 6 platos para cubrir 3 días de almuerzo/cena)
-        historial_ayc = (historial_ayc + [almuerzo["nombre"], cena["nombre"]])[-6:]
-        historial_dym = (historial_dym + [dym_hoy[0]["nombre"], dym_hoy[1]["nombre"]])[-6:]
-        historial_col = (historial_col + [c["nombre"] for c in cols_hoy])[-4:]
-
-if st.session_state.menu:
-    # ... (código de los expanders) ...
+            for tiempo in orden_visual:
+                plato = comidas.get(tiempo)
+                # Verificamos que el plato exista y no sea None antes de escribirlo
+                if plato and isinstance(plato, dict) and "nombre" in plato:
+                    # Formateamos el nombre del tiempo de comida para que quede lindo
+                    label = tiempo.replace("Colacion_M", "Colación Mañana").replace("Colacion_T", "Colación Tarde")
+                    st.write(f"🍴 **{label}:** {plato['nombre']}")
     
     st.divider()
-    # Preparamos el diccionario con todos los datos calculados 
-    datos_para_pdf = {
-        "nombre": nombre_pac,
-        "edad": edad,
-        "talla": talla_cm,
-        "peso": peso_actual,
-        "imc": imc,
-        "p_obj": p_obj,
-        "af": af_sel
-    }
     
-    pdf_bytes = generar_pdf(
-        nutri_info, 
-        datos_para_pdf, 
-        st.session_state.menu, 
-        {"diag": diag, "t_plan": t_plan, "kcal": kcal_final}
-    )
-    
-    st.download_button(
-        label="💾 DESCARGAR PLAN PROFESIONAL (PDF)",
-        data=pdf_bytes,
-        file_name=f"Plan_{nombre_pac.replace(' ', '_')}.pdf",
-        mime="application/pdf"
-    )
+    # Preparamos los datos finales para el PDF asegurando que todos los indicadores existan
+    try:
+        pdf_bytes = generar_pdf(
+            nutri_info, 
+            datos_antropometricos, 
+            st.session_state.menu, 
+            {"diag": diag, "t_plan": t_plan, "kcal": kcal_final}
+        )
+        
+        st.download_button(
+            label="💾 DESCARGAR PLAN PROFESIONAL (PDF)",
+            data=pdf_bytes,
+            file_name=f"Plan_{nombre_pac.replace(' ', '_')}.pdf",
+            mime="application/pdf",
+            key="btn_descarga_final"
+        )
+    except Exception as e:
+        st.error(f"Hubo un error al generar el PDF: {e}")
