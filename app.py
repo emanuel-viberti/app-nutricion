@@ -11,7 +11,7 @@ def generar_pdf(datos_nutri, datos_pac, menu, diag_info):
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
     
-    # Encabezado del Profesional
+    # --- ENCABEZADO PROFESIONAL ---
     pdf.set_font("Arial", "B", 14)
     pdf.cell(0, 8, f"{datos_nutri['nombre']}", ln=True, align='C')
     pdf.set_font("Arial", "", 9)
@@ -20,53 +20,67 @@ def generar_pdf(datos_nutri, datos_pac, menu, diag_info):
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(5)
     
-    # Título y Datos del Paciente
+    # --- DATOS DEL PACIENTE ---
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 10, f"PLAN ALIMENTARIO: {datos_pac['nombre'].upper()}", ln=True)
     
-    # Indicadores Antropométricos (Distribución mejorada)
+    # --- TABLA DE INDICADORES ANTROPOMÉTRICOS ---
     pdf.set_font("Arial", "B", 9)
     pdf.set_fill_color(245, 245, 245)
-    pdf.cell(0, 7, " INDICADORES ANTROPOMÉTRICOS Y DIAGNÓSTICO", ln=True, fill=True)
+    pdf.cell(0, 7, " INDICADORES Y DIAGNÓSTICO (OMS)", ln=True, fill=True)
     pdf.set_font("Arial", "", 9)
     
-    # Fila 1: Peso Actual - Talla - Edad
-    pdf.cell(63, 6, f"Peso Actual: {datos_pac['peso']} kg", ln=0)
-    pdf.cell(63, 6, f"Talla: {int(datos_pac['talla'])} cm", ln=0)
-    pdf.cell(63, 6, f"Edad: {datos_pac['edad']} años", ln=1) # Edad ahora al lado de Talla
+    # Fila 1: Peso - Talla - EDAD (Distribución en 3 columnas iguales)
+    col_w = 63.3
+    pdf.cell(col_w, 7, f"Peso Actual: {datos_pac['peso']} kg", ln=0)
+    pdf.cell(col_w, 7, f"Talla: {int(datos_pac['talla'])} cm", ln=0)
+    pdf.cell(col_w, 7, f"Edad: {datos_pac['edad']} años", ln=1) # Edad a la derecha
     
-    # Fila 2: IMC - Peso Ideal/Obj - Actividad
-    pdf.cell(63, 6, f"IMC: {datos_pac['imc']:.1f}", ln=0)
-    pdf.cell(63, 6, f"Peso Ideal/Obj: {datos_pac['p_obj']:.1f} kg", ln=0)
-    pdf.cell(63, 6, f"Actividad: {datos_pac['af']}", ln=1)
+    # Fila 2: IMC - Peso Objetivo - Actividad
+    pdf.cell(col_w, 7, f"IMC: {datos_pac['imc']:.1f}", ln=0)
+    pdf.cell(col_w, 7, f"Peso Ideal/Obj: {datos_pac['p_obj']:.1f} kg", ln=0)
+    pdf.cell(col_w, 7, f"Actividad: {datos_pac['af']}", ln=1)
     
+    # Fila 3: Diagnóstico y Prescripción
     pdf.set_font("Arial", "B", 9)
     pdf.cell(0, 8, f"Diagnóstico: {diag_info['diag']} | Prescripción: {diag_info['t_plan']} ({diag_info['kcal']:.0f} kcal/día)", ln=1)
     pdf.ln(4)
     
-    # Cuerpo del menú
+    # --- CUERPO DEL MENÚ SEMANAL ---
     for dia, comidas in menu.items():
+        # Separador de día
         pdf.set_font("Arial", "B", 11)
-        pdf.set_fill_color(235, 235, 235)
+        pdf.set_fill_color(230, 230, 230)
         pdf.cell(0, 8, f" {dia.upper()}", ln=True, fill=True)
         pdf.ln(1)
-        for tiempo, plato in comidas.items():
-            if tiempo == "Colaciones" and plato:
+        
+        # Orden de las comidas incluyendo las colaciones
+        orden_comidas = ["Desayuno", "Colacion_M", "Almuerzo", "Merienda", "Colacion_T", "Cena"]
+        
+        for tiempo in orden_comidas:
+            plato = comidas.get(tiempo)
+            if plato: # Solo imprime si la comida existe (ej: si colaciones_on es True)
+                # Etiqueta (Ej: ALMUERZO:)
                 pdf.set_font("Arial", "B", 9)
-                nombres_col = " | ".join([p['nombre'] for p in plato])
-                pdf.multi_cell(0, 5, f"COLACIONES: {nombres_col}")
-            elif tiempo != "Colaciones":
-                pdf.set_font("Arial", "B", 9)
-                pdf.cell(25, 5, f"{tiempo.upper()}:", ln=0)
+                label = tiempo.replace("Colacion_M", "COLACIÓN MAÑANA").replace("Colacion_T", "COLACIÓN TARDE").replace("_", " ").upper()
+                pdf.cell(35, 5, f"{label}:", ln=0)
+                
+                # Nombre del plato
                 pdf.set_font("Arial", "", 9)
                 pdf.cell(0, 5, f"{plato['nombre']}", ln=1)
+                
+                # Detalles (Medida y Preparación)
                 pdf.set_font("Arial", "I", 8)
-                pdf.cell(25, 4, "", ln=0)
+                pdf.cell(35, 4, "", ln=0) # Sangría
                 pdf.multi_cell(0, 4, f"Medida: {plato['mh']} - {plato['prep']}")
-            pdf.ln(1)
-        if pdf.get_y() > 260: pdf.add_page()
-    
-    return pdf.output(dest='S').encode('latin-1') 
+                pdf.ln(1)
+                
+        if pdf.get_y() > 250: # Control de salto de página
+            pdf.add_page()
+        else:
+            pdf.ln(2)
+            
+    return pdf.output(dest='S').encode('latin-1')
 # --- 2. DATOS DEL NUTRICIONISTA ---
 st.sidebar.header("Configuración de Firma")
 nutri_info = {
@@ -152,30 +166,45 @@ if 'menu' not in st.session_state: st.session_state.menu = {}
 # --- 4. EVALUACIÓN Y DIAGNÓSTICO EN PANTALLA ---
 st.title("Generador Nutricional Profesional 🍏")
 
-# Fila 1: Nombre del Paciente y Sexo
+# Fila 1: Nombre y Sexo
 c_nom, c_sex = st.columns([2, 1])
 with c_nom:
     nombre_pac = st.text_input("Nombre del Paciente", "Paciente Ejemplo", key="in_nom_pac")
 with c_sex:
     sexo = st.selectbox("Sexo", ["Femenino", "Masculino"], key="sel_sexo")
 
-# Fila 2: Peso, Talla y EDAD (ahora a la derecha de Talla)
+# Fila 2: Peso, Talla y EDAD (Manteniendo tu pedido de la edad a la derecha)
 c_peso, c_talla, c_edad = st.columns(3)
 with c_peso:
     peso_actual = st.number_input("Peso Actual (kg)", value=75.0, step=0.1, key="in_peso")
 with c_talla:
     talla_cm = st.number_input("Talla (cm)", value=160, step=1, format="%d", key="in_talla")
 with c_edad:
-    edad = st.number_input("Edad", min_value=1, value=30, key="in_edad") # Ubicada aquí
+    edad = st.number_input("Edad", min_value=1, value=30, key="in_edad")
 
 # Fila 3: Actividad Física
 af_sel = st.selectbox("Nivel de Actividad Física", ["Sedentario", "Leve", "Moderado", "Intenso"], key="sel_af")
 af_val = {"Sedentario": 1.2, "Leve": 1.3, "Moderado": 1.5, "Intenso": 1.7}[af_sel]
 
-# Lógica de IMC (se mantiene igual)
+# --- LÓGICA DE DIAGNÓSTICO SEGÚN OMS ---
 talla_m = talla_cm / 100
 imc = peso_actual / (talla_m ** 2)
-# ... resto de la lógica de diagnóstico ...
+
+if imc < 18.5: 
+    diag, t_plan = "Bajo Peso (Desnutrición)", "Plan Hipercalórico"
+elif 18.5 <= imc <= 24.9: 
+    diag, t_plan = "Normopeso (Rango Saludable)", "Plan Normocalórico"
+elif 25.0 <= imc <= 29.9: 
+    diag, t_plan = "Sobrepeso (Pre-obesidad)", "Plan Hipocalórico"
+elif 30.0 <= imc <= 34.9: 
+    diag, t_plan = "Obesidad Clase I (Leve)", "Plan Hipocalórico"
+elif 35.0 <= imc <= 39.9: 
+    diag, t_plan = "Obesidad Clase II (Moderada)", "Plan Hipocalórico"
+else: 
+    diag, t_plan = "Obesidad Clase III (Mórbida)", "Plan Hipocalórico"
+
+# Mostrar diagnóstico en pantalla para confirmar
+st.info(f"**Resultado:** {diag} | **IMC:** {imc:.2f}")
 
 # --- 5. PRESCRIPCIÓN Y CÁLCULO DE PESO OBJETIVO ---
 st.divider()
