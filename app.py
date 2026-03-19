@@ -24,49 +24,49 @@ def generar_pdf(datos_nutri, datos_pac, menu, diag_info):
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 10, f"PLAN ALIMENTARIO: {datos_pac['nombre'].upper()}", ln=True)
     
-    # BLOQUE NUEVO: Indicadores Antropométricos 
+    # Indicadores Antropométricos (Distribución mejorada)
     pdf.set_font("Arial", "B", 9)
     pdf.set_fill_color(245, 245, 245)
-    pdf.cell(0, 7, " INDICADORES Y DIAGNÓSTICO", ln=True, fill=True)
+    pdf.cell(0, 7, " INDICADORES ANTROPOMÉTRICOS Y DIAGNÓSTICO", ln=True, fill=True)
     pdf.set_font("Arial", "", 9)
     
-    col_w = 63
-    pdf.cell(col_w, 6, f"Peso Actual: {datos_pac['peso']} kg", ln=0)
-    pdf.cell(col_w, 6, f"Talla: {int(datos_pac['talla'])} cm", ln=0)
-    pdf.cell(col_w, 6, f"IMC: {datos_pac['imc']:.1f}", ln=1)
+    # Fila 1: Peso Actual - Talla - Edad
+    pdf.cell(63, 6, f"Peso Actual: {datos_pac['peso']} kg", ln=0)
+    pdf.cell(63, 6, f"Talla: {int(datos_pac['talla'])} cm", ln=0)
+    pdf.cell(63, 6, f"Edad: {datos_pac['edad']} años", ln=1) # Edad ahora al lado de Talla
     
-    pdf.cell(col_w, 6, f"Peso Ideal/Obj: {datos_pac['p_obj']:.1f} kg", ln=0)
-    pdf.cell(col_w, 6, f"Edad: {datos_pac['edad']} años", ln=0)
-    pdf.cell(col_w, 6, f"Actividad: {datos_pac['af']}", ln=1)
+    # Fila 2: IMC - Peso Ideal/Obj - Actividad
+    pdf.cell(63, 6, f"IMC: {datos_pac['imc']:.1f}", ln=0)
+    pdf.cell(63, 6, f"Peso Ideal/Obj: {datos_pac['p_obj']:.1f} kg", ln=0)
+    pdf.cell(63, 6, f"Actividad: {datos_pac['af']}", ln=1)
     
     pdf.set_font("Arial", "B", 9)
-    pdf.cell(0, 6, f"Diagnóstico: {diag_info['diag']} | Prescripción: {diag_info['t_plan']} ({diag_info['kcal']:.0f} kcal)", ln=1)
-    pdf.ln(5)
+    pdf.cell(0, 8, f"Diagnóstico: {diag_info['diag']} | Prescripción: {diag_info['t_plan']} ({diag_info['kcal']:.0f} kcal/día)", ln=1)
+    pdf.ln(4)
     
-    # Cuerpo del menú (igual que antes)
+    # Cuerpo del menú
     for dia, comidas in menu.items():
         pdf.set_font("Arial", "B", 11)
-        pdf.set_fill_color(230, 230, 230)
+        pdf.set_fill_color(235, 235, 235)
         pdf.cell(0, 8, f" {dia.upper()}", ln=True, fill=True)
-        pdf.ln(2)
+        pdf.ln(1)
         for tiempo, plato in comidas.items():
             if tiempo == "Colaciones" and plato:
-                pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 5, "COLACIONES:", ln=True)
-                for p in plato:
-                    pdf.set_font("Arial", "", 9)
-                    pdf.multi_cell(0, 5, f"- {p['nombre']} ({p['mh']})")
+                pdf.set_font("Arial", "B", 9)
+                nombres_col = " | ".join([p['nombre'] for p in plato])
+                pdf.multi_cell(0, 5, f"COLACIONES: {nombres_col}")
             elif tiempo != "Colaciones":
-                pdf.set_font("Arial", "B", 10)
-                pdf.cell(0, 5, f"{tiempo.upper()}: {plato['nombre']}", ln=True)
+                pdf.set_font("Arial", "B", 9)
+                pdf.cell(25, 5, f"{tiempo.upper()}:", ln=0)
                 pdf.set_font("Arial", "", 9)
-                pdf.multi_cell(0, 5, f"-> {plato['mh']} | {plato['prep']}")
+                pdf.cell(0, 5, f"{plato['nombre']}", ln=1)
+                pdf.set_font("Arial", "I", 8)
+                pdf.cell(25, 4, "", ln=0)
+                pdf.multi_cell(0, 4, f"Medida: {plato['mh']} - {plato['prep']}")
             pdf.ln(1)
-        if pdf.get_y() > 250: pdf.add_page()
-        else: pdf.ln(2)
-            
-    return pdf.output(dest='S').encode('latin-1')
-
+        if pdf.get_y() > 260: pdf.add_page()
+    
+    return pdf.output(dest='S').encode('latin-1') 
 # --- 2. DATOS DEL NUTRICIONISTA ---
 st.sidebar.header("Configuración de Firma")
 nutri_info = {
@@ -172,15 +172,57 @@ else: diag, t_plan = "Obesidad Grado I", "Plan Hipocalórico"
 
 st.subheader(f"Diagnóstico: {diag} (IMC: {imc:.2f})")
 
-# --- 5. PRESCRIPCIÓN ---
-pi_broca = (talla_cm - 100) * (0.9 if sexo == "Femenino" else 1.0)
-val_sugerido = ((peso_actual - pi_broca) * 0.25) + pi_broca if imc >= 30.0 else pi_broca
-label_p = "Peso Ideal Corregido" if imc >= 30.0 else "Peso Ideal"
+# --- 5. PRESCRIPCIÓN Y CÁLCULO DE PESO OBJETIVO ---
+st.divider()
+st.subheader("Configuración de la Prescripción")
 
-cp1, cp2 = st.columns(2)
-p_obj = cp1.number_input(f"{label_p} - Sugerido", value=float(val_sugerido), key="p_obj")
-kcal_final = (p_obj * 22) * af_val
-cp2.info(f"**Prescripción:** {t_plan} de {kcal_final:.0f} kcal/día")
+# Cálculo de Peso Ideal (Fórmula de Broca) ajustado por sexo
+if sexo == "Femenino":
+    pi_valor = (talla_cm - 100) * 0.9
+else:
+    pi_valor = (talla_cm - 100) * 1.0
+
+# Lógica para Peso Ideal Corregido (PIC) en caso de Obesidad (IMC >= 30)
+# Se utiliza para no calcular calorías sobre un peso excesivo ni sobre un ideal inalcanzable
+if imc >= 30.0:
+    # Fórmula de Wilkens: PIC = ((Peso Actual - PI) * 0.25) + PI
+    p_obj_calculado = ((peso_actual - pi_valor) * 0.25) + pi_valor
+    label_p = "Peso Ideal Corregido (PIC) - Sugerido por Obesidad"
+    ayuda_p = "Se utiliza el PIC (Wilkens) para calcular requerimientos en pacientes con IMC >= 30."
+else:
+    p_obj_calculado = pi_valor
+    label_p = "Peso Ideal (PI) - Sugerido"
+    ayuda_p = "Cálculo basado en fórmula de Broca según talla y sexo."
+
+col_p1, col_p2 = st.columns(2)
+
+with col_p1:
+    # El key dinámico incluye las variables de las que depende para forzar el refresco
+    p_obj = st.number_input(
+        label=label_p,
+        value=float(p_obj_calculado),
+        step=0.1,
+        format="%.1f",
+        help=ayuda_p,
+        key=f"p_obj_dinamico_{sexo}_{talla_cm}_{peso_actual}"
+    )
+
+with col_p2:
+    # Cálculo de VCT (Valor Calórico Total)
+    # 22 kcal es un promedio basal para pacientes en tratamiento, multiplicado por factor AF
+    kcal_final = (p_obj * 22) * af_val
+    st.metric(label="Calorías Objetivo (VCT)", value=f"{kcal_final:.0f} kcal/día")
+    st.caption(f"Prescripción: {t_plan}")
+
+# Guardamos estos datos para que el PDF los tome correctamente
+datos_antropometricos = {
+    "peso": peso_actual,
+    "talla": talla_cm,
+    "edad": edad,
+    "imc": imc,
+    "p_obj": p_obj,
+    "af": af_sel
+}
 
 # --- 6. MENÚ ---
 st.divider()
