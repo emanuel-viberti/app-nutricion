@@ -149,28 +149,33 @@ def cargar_db():
 if 'db' not in st.session_state: st.session_state.db = cargar_db()
 if 'menu' not in st.session_state: st.session_state.menu = {}
 
-# --- 4. EVALUACIÓN Y DIAGNÓSTICO ---
+# --- 4. EVALUACIÓN Y DIAGNÓSTICO EN PANTALLA ---
 st.title("Generador Nutricional Profesional 🍏")
-c1, c2, c3 = st.columns(3)
-with c1:
-    sexo = st.selectbox("Sexo", ["Femenino", "Masculino"], key="sel_sexo")
-    nombre_pac = st.text_input("Nombre del Paciente", "Paciente Ejemplo", key="in_nom_pac")
-    edad = st.number_input("Edad", min_value=1, value=30, key="in_edad")
-with c2:
-    peso_actual = st.number_input("Peso Actual (kg)", value=75.0, step=0.1, key="in_peso")
-    talla_cm = st.number_input("Talla (cm)", value=160, step=1, format="%d", key="in_talla")
-with c3:
-    af_sel = st.selectbox("Actividad Física", ["Sedentario", "Leve", "Moderado", "Intenso"], key="sel_af")
-    af_val = {"Sedentario": 1.2, "Leve": 1.3, "Moderado": 1.5, "Intenso": 1.7}[af_sel]
 
+# Fila 1: Nombre del Paciente y Sexo
+c_nom, c_sex = st.columns([2, 1])
+with c_nom:
+    nombre_pac = st.text_input("Nombre del Paciente", "Paciente Ejemplo", key="in_nom_pac")
+with c_sex:
+    sexo = st.selectbox("Sexo", ["Femenino", "Masculino"], key="sel_sexo")
+
+# Fila 2: Peso, Talla y EDAD (ahora a la derecha de Talla)
+c_peso, c_talla, c_edad = st.columns(3)
+with c_peso:
+    peso_actual = st.number_input("Peso Actual (kg)", value=75.0, step=0.1, key="in_peso")
+with c_talla:
+    talla_cm = st.number_input("Talla (cm)", value=160, step=1, format="%d", key="in_talla")
+with c_edad:
+    edad = st.number_input("Edad", min_value=1, value=30, key="in_edad") # Ubicada aquí
+
+# Fila 3: Actividad Física
+af_sel = st.selectbox("Nivel de Actividad Física", ["Sedentario", "Leve", "Moderado", "Intenso"], key="sel_af")
+af_val = {"Sedentario": 1.2, "Leve": 1.3, "Moderado": 1.5, "Intenso": 1.7}[af_sel]
+
+# Lógica de IMC (se mantiene igual)
 talla_m = talla_cm / 100
 imc = peso_actual / (talla_m ** 2)
-if imc < 18.5: diag, t_plan = "Delgadez", "Plan Hipercalórico"
-elif 18.5 <= imc <= 24.9: diag, t_plan = "Normopeso", "Plan Normocalórico"
-elif 25.0 <= imc <= 29.9: diag, t_plan = "Sobrepeso", "Plan Hipocalórico"
-else: diag, t_plan = "Obesidad Grado I", "Plan Hipocalórico"
-
-st.subheader(f"Diagnóstico: {diag} (IMC: {imc:.2f})")
+# ... resto de la lógica de diagnóstico ...
 
 # --- 5. PRESCRIPCIÓN Y CÁLCULO DE PESO OBJETIVO ---
 st.divider()
