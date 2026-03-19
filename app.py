@@ -9,7 +9,7 @@ nombre_nutri = st.sidebar.text_input("Nombre y Apellido", "Lic. en Nutrición")
 matricula = st.sidebar.text_input("Matrícula", "M.P. 0000")
 contacto = st.sidebar.text_input("Contacto", "Email / Celular")
 
-# --- 2. BASE DE DATOS (Nombres, Medidas y Prep) ---
+# --- 2. BASE DE DATOS ---
 def cargar_db():
     ayc = [
         {"nombre": "Milanesa de peceto con puré de calabaza", "mh": "1 unid. med. y 1 taza de puré", "prep": "Al horno con rocío vegetal. Puré sin manteca."},
@@ -48,22 +48,26 @@ with c3:
     af_sel = st.selectbox("Actividad Física", ["Sedentario", "Leve", "Moderado", "Intenso"])
     af_val = {"Sedentario": 1.2, "Leve": 1.3, "Moderado": 1.5, "Intenso": 1.7}[af_sel]
 
-# Lógica IMC y Diagnóstico
+# Lógica IMC y Clasificación de Obesidad
 talla_m = talla_cm / 100
 imc = peso_actual / (talla_m ** 2)
+
 if imc < 18.5: diag, t_plan = "Delgadez", "Plan Hipercalórico"
 elif 18.5 <= imc <= 24.9: diag, t_plan = "Normopeso", "Plan Normocalórico"
 elif 25.0 <= imc <= 29.9: diag, t_plan = "Sobrepeso", "Plan Hipocalórico"
-else: diag, t_plan = "Obesidad", "Plan Hipocalórico"
+elif 30.0 <= imc <= 34.9: diag, t_plan = "Obesidad Grado I", "Plan Hipocalórico"
+elif 35.0 <= imc <= 39.9: diag, t_plan = "Obesidad Grado II", "Plan Hipocalórico"
+else: diag, t_plan = "Obesidad Grado III", "Plan Hipocalórico"
 
 st.subheader(f"Diagnóstico: {diag} (IMC: {imc:.2f})")
 st.divider()
 
-# --- 4. PRESCRIPCIÓN (PI/PIC EDITABLE) ---
+# --- 4. PRESCRIPCIÓN (PI vs PIC CONDICIONAL) ---
 st.header("2. Prescripción")
 pi_broca = (talla_cm - 100) * (0.9 if sexo == "Femenino" else 1.0)
 
-if imc >= 25.0:
+# El PIC solo se calcula si el diagnóstico es Obesidad (Grado I, II o III)
+if imc >= 30.0:
     val_sugerido = ((peso_actual - pi_broca) * 0.25) + pi_broca
     label_peso = "Peso Ideal Corregido (Wilkens)"
 else:
@@ -72,7 +76,7 @@ else:
 
 cp1, cp2 = st.columns(2)
 with cp1:
-    p_obj = st.number_input(f"{label_peso} - Editable", value=float(val_sugerido), key=f"p_{sexo}_{talla_cm}")
+    p_obj = st.number_input(f"{label_peso} - Sugerido", value=float(val_sugerido), key=f"p_{sexo}_{talla_cm}")
 
 with cp2:
     kcal_final = (p_obj * 22) * af_val
