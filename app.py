@@ -147,10 +147,27 @@ if st.button("🚀 GENERAR PLAN"):
     t_a = "trabajo" if alm_trabajo else "ayc"
     
     # Muestreo aleatorio de la base de datos para evitar repeticiones excesivas
-    pool_dym = random.sample(st.session_state.db["dym"] * 3, 14) # Multiplicamos por si la lista es corta
-    pool_ayc = random.sample(st.session_state.db["ayc"] * 3, 14)
-    pool_trab = random.sample(st.session_state.db["trabajo"] * 3, 7)
-    pool_col = random.sample(st.session_state.db["col"] * 5, 14)
+    # --- 6. MENÚ (Evitando errores de Sample) ---
+st.divider()
+c_a, c_b = st.columns(2)
+alm_trabajo = c_a.checkbox("Almuerzo en el trabajo")
+colaciones_on = c_b.checkbox("Incluir colaciones (Mañana y Tarde)")
+
+if st.button("🚀 GENERAR PLAN"):
+    dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    t_a = "trabajo" if alm_trabajo else "ayc"
+    
+    # Usamos random.choices para evitar el ValueError si la lista es corta
+    # y aseguramos una cantidad suficiente de platos
+    def obtener_lista_segura(clave, cantidad):
+        base = st.session_state.db[clave]
+        # Multiplicamos la lista para tener variedad, pero usamos choices para que no falle
+        return random.choices(base, k=cantidad)
+
+    pool_dym = obtener_lista_segura("dym", 14)
+    pool_ayc = obtener_lista_segura("ayc", 14)
+    pool_trab = obtener_lista_segura("trabajo", 7)
+    pool_col = obtener_lista_segura("col", 14)
 
     st.session_state.menu = {}
     for i, d in enumerate(dias):
@@ -161,21 +178,3 @@ if st.button("🚀 GENERAR PLAN"):
             "Cena": pool_ayc[i+7],
             "Colaciones": [pool_col[i*2], pool_col[i*2+1]] if colaciones_on else []
         }
-
-if st.session_state.menu:
-    for dia, comidas in st.session_state.menu.items():
-        with st.expander(f"📅 {dia}"):
-            for tiempo, plato in comidas.items():
-                if tiempo == "Colaciones":
-                    for p in plato: st.write(f"🔸 **Colación:** {p['nombre']}")
-                else:
-                    ci, cb = st.columns([0.9, 0.1])
-                    ci.write(f"🍴 **{tiempo}:** {plato['nombre']}")
-                    if cb.button("🔄", key=f"sw_{dia}_{tiempo}"):
-                        t = "dym" if tiempo in ["Desayuno", "Merienda"] else ("trabajo" if (tiempo == "Almuerzo" and alm_trabajo) else "ayc")
-                        st.session_state.menu[dia][tiempo] = random.choice(st.session_state.db[t])
-                        st.rerun()
-
-    st.divider()
-    pdf_bytes = generar_pdf(nutri_info, {"nombre": nombre_pac, "edad": edad}, st.session_state.menu, {"diag": diag, "t_plan": t_plan, "kcal": kcal_final})
-    st.download_button("💾 DESCARGAR PDF PROFESIONAL", data=pdf_bytes, file_name=f"Plan_{nombre_pac.replace(' ', '_')}.pdf", mime="application/pdf")
