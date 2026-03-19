@@ -176,46 +176,35 @@ st.subheader(f"Diagnóstico: {diag} (IMC: {imc:.2f})")
 st.divider()
 st.subheader("Configuración de la Prescripción")
 
-# Cálculo de Peso Ideal (Fórmula de Broca) ajustado por sexo
+# Cálculo de PI/PIC (Broca y Wilkens)
 if sexo == "Femenino":
     pi_valor = (talla_cm - 100) * 0.9
 else:
     pi_valor = (talla_cm - 100) * 1.0
 
-# Lógica para Peso Ideal Corregido (PIC) en caso de Obesidad (IMC >= 30)
-# Se utiliza para no calcular calorías sobre un peso excesivo ni sobre un ideal inalcanzable
 if imc >= 30.0:
-    # Fórmula de Wilkens: PIC = ((Peso Actual - PI) * 0.25) + PI
     p_obj_calculado = ((peso_actual - pi_valor) * 0.25) + pi_valor
-    label_p = "Peso Ideal Corregido (PIC) - Sugerido por Obesidad"
-    ayuda_p = "Se utiliza el PIC (Wilkens) para calcular requerimientos en pacientes con IMC >= 30."
+    label_p = "Peso Ideal Corregido (PIC)"
 else:
     p_obj_calculado = pi_valor
-    label_p = "Peso Ideal (PI) - Sugerido"
-    ayuda_p = "Cálculo basado en fórmula de Broca según talla y sexo."
+    label_p = "Peso Ideal (PI)"
 
 col_p1, col_p2 = st.columns(2)
-
 with col_p1:
-    # El key dinámico incluye las variables de las que depende para forzar el refresco
     p_obj = st.number_input(
         label=label_p,
         value=float(p_obj_calculado),
         step=0.1,
-        format="%.1f",
-        help=ayuda_p,
-        key=f"p_obj_dinamico_{sexo}_{talla_cm}_{peso_actual}"
+        key=f"p_obj_fix_{sexo}_{talla_cm}_{peso_actual}"
     )
 
 with col_p2:
-    # Cálculo de VCT (Valor Calórico Total)
-    # 22 kcal es un promedio basal para pacientes en tratamiento, multiplicado por factor AF
     kcal_final = (p_obj * 22) * af_val
-    st.metric(label="Calorías Objetivo (VCT)", value=f"{kcal_final:.0f} kcal/día")
-    st.caption(f"Prescripción: {t_plan}")
+    st.metric(label="Calorías Objetivo", value=f"{kcal_final:.0f} kcal/día")
 
-# Guardamos estos datos para que el PDF los tome correctamente
+# Diccionario consolidado para el PDF (Asegura Edad al lado de Talla)
 datos_antropometricos = {
+    "nombre": nombre_pac,
     "peso": peso_actual,
     "talla": talla_cm,
     "edad": edad,
@@ -223,6 +212,66 @@ datos_antropometricos = {
     "p_obj": p_obj,
     "af": af_sel
 }
+
+# --- 6. GENERACIÓN DEL MENÚ ---
+st.divider()
+c_a, c_b = st.columns(2)
+alm_trabajo = c_a.checkbox("Almuerzo en el trabajo", key="check_trabajo")
+colaciones_on = c_b.checkbox("Incluir colaciones", key="check_colaciones")
+
+# BOTÓN RENOMBRADO Y FUNCIONAL
+if st.button("🚀 GENERAR PLAN SEMANAL", key="btn_generar_principal"):
+    dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    st.session_state.menu = {}
+    historial_ayc = []
+    historial_dym = []
+
+    for d in dias:
+        # Lógica de no repetición (3 días)
+        pool_dym = [x for x in st.session_state.db["dym"] if x["nombre"] not in historial_dym]
+        dym_hoy = random.sample(pool_dym if len(pool_dym) >= 2 else st.session_state.db["dym"], 2)
+        
+        if alm_trabajo:
+            pool_trab = [x for x in st.session_state.db["trabajo"] if x["nombre"] not in historial_ayc]
+            almuerzo = random.choice(pool_trab if pool_trab else st.session_state.db["trabajo"])
+            pool_cena = [x for x in st.session_state.db["ayc"] if x["nombre"] not in historial_ayc and x["nombre"] != almuerzo["nombre"]]
+            cena = random.choice(pool_cena if pool_cena else st.session_state.db["ayc"])
+        else:
+            pool_ayc = [x for x in st.session_state.db["ayc"] if x["nombre"] not in historial_ayc]
+            ayc_hoy = random.sample(pool_ayc if len(pool_ayc) >= 2 else st.session_state.db["ayc"], 2)
+            almuerzo, cena = ayc_hoy[0], ayc_hoy[1]
+            
+        st.session_state.menu[d] = {
+            "Desayuno": dym_hoy[0], "Almuerzo": almuerzo, 
+            "Merienda": dym_hoy[1], "Cena": cena, 
+            "Colaciones": random.sample(st.session_state.db["col"], 2) if colaciones_on else []
+        }
+        historial_ayc = (historial_ayc + [almuerzo["nombre"], cena["nombre"]])[-6:]
+        historial_dym = (historial_dym + [dym_hoy[0]["nombre"], dym_hoy[1]["nombre"]])[-6:]
+
+# --- 7. VISUALIZACIÓN Y DESCARGA ---
+if st.session_state.menu:
+    for dia, comidas in st.session_state.menu.items():
+        with st.expander(f"📅 {dia}"):
+            for tiempo, plato in comidas.items():
+                if tiempo != "Colaciones":
+                    st.write(f"🍴 **{tiempo}:** {plato['nombre']}")
+    
+    st.divider()
+    # Aquí llamamos a la función de PDF con el diccionario que tiene la Edad corregida
+    pdf_bytes = generar_pdf(
+        nutri_info, 
+        datos_antropometricos, 
+        st.session_state.menu, 
+        {"diag": diag, "t_plan": t_plan, "kcal": kcal_final}
+    )
+    
+    st.download_button(
+        label="💾 DESCARGAR PLAN PROFESIONAL",
+        data=pdf_bytes,
+        file_name=f"Plan_{nombre_pac.replace(' ', '_')}.pdf",
+        mime="application/pdf"
+    )
 
 # --- 6. MENÚ ---
 st.divider()
