@@ -122,8 +122,11 @@ else: diag, t_plan = "Obesidad Grado III", "Plan Hipocalórico"
 
 st.subheader(f"Diagnóstico: {diag} (IMC: {imc:.2f})")
 
-# --- 5. PRESCRIPCIÓN ---
+# --- 5. PRESCRIPCIÓN (PI vs PIC CONDICIONAL Y REACTIVO) ---
+st.header("2. Prescripción")
 pi_broca = (talla_cm - 100) * (0.9 if sexo == "Femenino" else 1.0)
+
+# Lógica condicional Obesidad (PIC) vs Resto (PI)
 if imc >= 30.0:
     val_sugerido = ((peso_actual - pi_broca) * 0.25) + pi_broca
     label_p = "Peso Ideal Corregido (Wilkens)"
@@ -132,14 +135,15 @@ else:
     label_p = "Peso Ideal (Broca)"
 
 cp1, cp2 = st.columns(2)
-p_obj = cp1.number_input(f"{label_p} - Sugerido", value=float(val_sugerido), key="in_p_obj")
+# FIX: Usamos key dinámica basada en sexo y talla para que el valor sugerido se actualice al cambiar los selectores
+p_obj = cp1.number_input(f"{label_p} - Sugerido", value=float(val_sugerido), key=f"p_obj_dyn_{sexo}_{talla_cm}")
+
 kcal_final = (p_obj * 22) * af_val
 cp2.info(f"**Prescripción:** {t_plan} de {kcal_final:.0f} kcal/día")
 
-# --- 6. MENÚ (Sin repeticiones y con IDs únicos) ---
+# --- 6. MENÚ ---
 st.divider()
 c_a, c_b = st.columns(2)
-# Agregamos 'key' única para solucionar el StreamlitDuplicateElementId
 alm_trabajo = c_a.checkbox("Almuerzo en el trabajo", key="check_trabajo")
 colaciones_on = c_b.checkbox("Incluir colaciones (Mañana y Tarde)", key="check_colaciones")
 
@@ -174,7 +178,6 @@ if st.session_state.menu:
                 else:
                     ci, cb = st.columns([0.9, 0.1])
                     ci.write(f"🍴 **{tiempo}:** {plato['nombre']}")
-                    # Botón de intercambio con ID único por día y tiempo
                     if cb.button("🔄", key=f"refresh_{dia}_{tiempo}"):
                         t = "dym" if tiempo in ["Desayuno", "Merienda"] else ("trabajo" if (tiempo == "Almuerzo" and alm_trabajo) else "ayc")
                         st.session_state.menu[dia][tiempo] = random.choice(st.session_state.db[t])
