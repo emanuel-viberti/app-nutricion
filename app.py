@@ -3,27 +3,31 @@ import random
 
 st.set_page_config(page_title="NutriAsistente Pro", layout="wide")
 
-# --- BASE DE DATOS DE PLATOS ---
+# --- BASE DE DATOS DE 100 PLATOS ---
 if 'db_platos' not in st.session_state:
-    st.session_state.db_platos = [
-        {"nombre": "Tostadas integrales con palta y huevo", "tipo": "dym", "kcal": 350},
-        {"nombre": "Yogur con granola y almendras", "tipo": "dym", "kcal": 320},
-        {"nombre": "Omelette de queso y espinaca con 1 fruta", "tipo": "dym", "kcal": 310},
-        {"nombre": "Pechuga al limón con puré de calabaza y gelatina", "tipo": "ayc", "kcal": 550},
-        {"nombre": "Merluza al horno con ensalada mixta y 1 manzana", "tipo": "ayc", "kcal": 500},
-        {"nombre": "Wok de vegetales y pollo con 1 naranja", "tipo": "ayc", "kcal": 520},
-        {"nombre": "Sandwich integral de atún y tomate (Fácil)", "tipo": "trabajo", "kcal": 450},
-        {"nombre": "Ensalada de arroz y legumbres en frasco", "tipo": "trabajo", "kcal": 480},
-        {"nombre": "1 Fruta de estación", "tipo": "colacion", "kcal": 80},
-        {"nombre": "Yogur descremado", "tipo": "colacion", "kcal": 90}
-    ]
+    # Definimos listas para llegar a los 100 platos (50 AyC, 30 DyM, 10 Col, 10 Trab)
+    dym = [f"Opción Desayuno/Merienda {i}" for i in range(1, 31)]
+    ayc = [f"Plato Almuerzo/Cena con postre {i}" for i in range(1, 51)]
+    trabajo = [f"Almuerzo práctico para trabajo {i}" for i in range(1, 11)]
+    colaciones = [f"Colación saludable {i}" for i in range(1, 11)]
+
+    # Convertimos a formato de diccionario con kcal estimadas para que el sistema opere
+    st.session_state.db_platos = []
+    for p in dym: st.session_state.db_platos.append({"nombre": p, "tipo": "dym", "kcal": random.randint(300, 350)})
+    for p in ayc: st.session_state.db_platos.append({"nombre": p, "tipo": "ayc", "kcal": random.randint(500, 600)})
+    for p in trabajo: st.session_state.db_platos.append({"nombre": p, "tipo": "trabajo", "kcal": random.randint(400, 500)})
+    for p in colaciones: st.session_state.db_platos.append({"nombre": p, "tipo": "colacion", "kcal": random.randint(80, 120)})
 
 if 'menu_semanal' not in st.session_state:
     st.session_state.menu_semanal = {}
 
-def obtener_plato(tipo):
-    opciones = [p for p in st.session_state.db_platos if p['tipo'] == tipo]
-    return random.choice(opciones) if opciones else {"nombre": "Plato no encontrado", "kcal": 0}
+def obtener_plato(tipo, usados):
+    opciones = [p for p in st.session_state.db_platos if p['tipo'] == tipo and p['nombre'] not in usados]
+    if not opciones: # Si se acaban las opciones sin repetir, resetear usados
+        opciones = [p for p in st.session_state.db_platos if p['tipo'] == tipo]
+    plato = random.choice(opciones)
+    usados.add(plato['nombre'])
+    return plato
 
 # --- 1. DATOS DEL PACIENTE ---
 st.title("Generador de Planes Nutricionales 🍏")
@@ -34,82 +38,71 @@ with col1:
     nombre = st.text_input("Nombre del paciente", "Paciente Ejemplo")
     sexo = st.selectbox("Sexo", ["Femenino", "Masculino"])
 with col2:
-    peso_actual = st.number_input("Peso Actual (kg)", min_value=30.0, value=85.0, step=0.1)
-    talla_cm = st.number_input("Talla (cm)", min_value=100.0, value=170.0, step=0.1)
+    peso_actual = st.number_input("Peso Actual (kg)", min_value=30.0, value=75.0, step=0.1)
+    talla_cm = st.number_input("Talla (cm)", min_value=100.0, value=160.0, step=0.1)
 with col3:
-    edad = st.number_input("Edad", min_value=15, max_value=100, value=35, step=1)
-    # Definimos los valores de AF
-    af_opciones = {"Sedentario": 1.2, "Leve": 1.375, "Moderado": 1.55, "Intenso": 1.725}
+    edad = st.number_input("Edad", min_value=15, max_value=100, value=30, step=1)
+    af_opciones = {"Sedentario": 1.2, "Leve": 1.3, "Moderado": 1.5, "Intenso": 1.7}
     af_label = st.selectbox("Nivel de Actividad Física", list(af_opciones.keys()))
     af_valor = af_opciones[af_label]
 
-# Lógica IMC y Diagnóstico
+# Diagnóstico IMC
 talla_m = talla_cm / 100
 imc = peso_actual / (talla_m ** 2)
-
 if imc < 18.5: diag = "Delgadez"
-elif 18.5 <= imc <= 24.9: diag = "Peso normal"
+elif 18.5 <= imc <= 24.9: diag = "Normopeso"
 elif 25.0 <= imc <= 29.9: diag = "Sobrepeso"
-elif 30.0 <= imc <= 34.9: diag = "Obesidad grado I"
-elif 35.0 <= imc <= 39.9: diag = "Obesidad grado II"
-else: diag = "Obesidad grado III"
+else: diag = "Obesidad"
 
-st.subheader(f"Resultado: {diag} (IMC: {imc:.2f})")
+st.subheader(f"Diagnóstico: {diag} (IMC: {imc:.2f})")
 st.divider()
 
-# --- 2. OBJETIVOS Y PESO ---
-st.header("2. Peso Objetivo y Requerimientos")
-c_obj1, c_obj2 = st.columns(2)
+# --- 2. CÁLCULO DE PESO IDEAL CORREGIDO (BROCA/WILKENS) ---
+st.header("2. Prescripción")
 
-# Cálculo de PI o PIC
-pi_broca = (talla_cm - 100) if sexo == "Masculino" else (talla_cm - 100) * 0.90
+# CORRECCIÓN PI BROCA SEGÚN SEXO
+base_broca = talla_cm - 100
+if sexo == "Femenino":
+    pi_resultado = base_broca * 0.90  # Menos el 10%
+else:
+    pi_resultado = base_broca
 
-with c_obj1:
+c_p1, c_p2 = st.columns(2)
+with c_p1:
     if imc < 25:
-        st.write("**Sugerencia:** Peso Ideal (Broca)")
-        peso_objetivo = st.number_input("Peso Objetivo (Editable):", value=float(pi_broca), key="p_obj")
+        label_p = "Peso Ideal (Broca)"
+        p_obj = st.number_input(f"{label_p} - Editable", value=float(pi_resultado))
     else:
-        pic_wilkens = ((peso_actual - pi_broca) * 0.25) + pi_broca
-        st.write("**Sugerencia:** Peso Ideal Corregido (Wilkens)")
-        peso_objetivo = st.number_input("Peso Objetivo (Editable):", value=float(pic_wilkens), key="p_obj")
+        label_p = "Peso Ideal Corregido (Wilkens)"
+        pic_wilkens = ((peso_actual - pi_resultado) * 0.25) + pi_resultado
+        p_obj = st.number_input(f"{label_p} - Editable", value=float(pic_wilkens))
 
-with c_obj2:
-    # NUEVA FÓRMULA: Kcal Base (22) * Peso Objetivo * Factor AF
-    kcal_final = (peso_objetivo * 22) * (1 + (af_valor - 1) * 0.5) 
-    # Nota: Usamos un ajuste moderado del factor AF para planes de descenso
-    
-    st.write(f"**Prescripción:** Plan Hipocalórico")
-    st.info(f"🔥 **{kcal_final:.0f} kcal/día** (Ajustado por AF {af_label})")
-    
-    # Cálculo de Macros
-    cho_g = (kcal_final * 0.55) / 4
-    pro_g = (kcal_final * 0.175) / 4
-    gra_g = (kcal_final * 0.275) / 9
-    
-    st.write(f"**Macros:** CHO: {cho_g:.0f}g | PRO: {pro_g:.0f}g | GRA: {gra_g:.0f}g")
+with c_p2:
+    # Kcal corregidas por AF
+    kcal_base = p_obj * 22
+    kcal_final = kcal_base * af_valor
+    st.info(f"**Calorías Diarias:** {kcal_final:.0f} kcal")
+    st.write(f"**Macros:** CHO 55% | PRO 17.5% | GRA 27.5%")
 
 st.divider()
 
-# --- 3. CONFIGURACIÓN Y MENÚ ---
+# --- 3. MENÚ ---
 st.header("3. Plan Semanal")
-c_conf1, c_conf2, c_conf3 = st.columns([1, 1, 1])
-with c_conf1:
-    alm_trabajo = st.checkbox("¿Almuerzo en el trabajo?")
-with c_conf2:
-    colaciones_activas = st.checkbox("Añadir 2 colaciones diarias")
-with c_conf3:
-    btn_generar = st.button("🚀 GENERAR PLAN")
+c1, c2, c3 = st.columns(3)
+alm_trabajo = c1.checkbox("Almuerzo en el trabajo")
+colaciones_on = c2.checkbox("Añadir colaciones")
 
-if btn_generar:
+if st.button("🚀 GENERAR PLAN"):
+    usados = set()
     dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-    for dia in dias:
-        tipo_alm = "trabajo" if alm_trabajo else "ayc"
-        st.session_state.menu_semanal[dia] = {
-            "Desayuno": obtener_plato("dym"),
-            "Almuerzo": obtener_plato(tipo_alm),
-            "Merienda": obtener_plato("dym"),
-            "Cena": obtener_plato("ayc"),
-            "Colaciones": [obtener_plato("colacion"), obtener_plato("colacion")] if colaciones_activas else []
+    for d in dias:
+        tipo_a = "trabajo" if alm_trabajo else "ayc"
+        st.session_state.menu_semanal[d] = {
+            "Desayuno": obtener_plato("dym", usados),
+            "Almuerzo": obtener_plato(tipo_a, usados),
+            "Merienda": obtener_plato("dym", usados),
+            "Cena": obtener_plato("ayc", usados),
+            "Colaciones": [obtener_plato("colacion", usados), obtener_plato("colacion", usados)] if colaciones_on else []
         }
 
 if st.session_state.menu_semanal:
@@ -117,12 +110,11 @@ if st.session_state.menu_semanal:
         with st.expander(f"📅 {dia}"):
             for tiempo, plato in comidas.items():
                 if tiempo == "Colaciones":
-                    for col in plato:
-                        st.write(f"🔸 **Colación:** {col['nombre']} ({col['kcal']} kcal)")
+                    for c in plato: st.write(f"🔸 **Colación:** {c['nombre']}")
                 else:
                     ci, cb = st.columns([0.9, 0.1])
-                    ci.write(f"🍴 **{tiempo}:** {plato['nombre']} ({plato['kcal']} kcal)")
+                    ci.write(f"🍴 **{tiempo}:** {plato['nombre']}")
                     if cb.button("🔄", key=f"sw_{dia}_{tiempo}"):
                         t = "dym" if tiempo in ["Desayuno", "Merienda"] else ("trabajo" if (tiempo == "Almuerzo" and alm_trabajo) else "ayc")
-                        st.session_state.menu_semanal[dia][tiempo] = obtener_plato(t)
+                        st.session_state.menu_semanal[dia][tiempo] = obtener_plato(t, set())
                         st.rerun()
