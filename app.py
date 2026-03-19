@@ -2,6 +2,8 @@ import streamlit as st
 import random
 from fpdf import FPDF
 import datetime
+import json
+import os
 
 st.set_page_config(page_title="NutriAsistente AR", layout="wide")
 
@@ -62,8 +64,14 @@ nutri_info = {
     "contacto": st.sidebar.text_input("Contacto", "Email / Celular", key="nutri_cont")
 }
 
-# --- 3. BASE DE DATOS ---
+# --- 3. BASE DE DATOS AMPLIADA ---
 def cargar_db():
+    # Si tienes el archivo platos.json en tu GitHub/Carpeta, lo cargará automáticamente
+    if os.path.exists('platos.json'):
+        with open('platos.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    
+    # Si no existe el JSON, usamos esta lista ampliada (20 platos) para evitar repeticiones
     ayc = [
         {"nombre": "Milanesa de peceto con puré de calabaza", "mh": "1 unid. med. y 1 taza de puré", "prep": "Al horno con rocío vegetal."},
         {"nombre": "Filet de merluza al limón con ensalada", "mh": "1 filet grande y 1 plato playo", "prep": "Pescado a la plancha."},
@@ -72,13 +80,26 @@ def cargar_db():
         {"nombre": "Bife de cuadril con ensalada mixta", "mh": "1 bife med. y 1 plato de vegetales", "prep": "Carne a la plancha."},
         {"nombre": "Canelones de verdura con salsa fileto", "mh": "2 unidades", "prep": "Masa liviana."},
         {"nombre": "Pollo al horno con vegetales asados", "mh": "1 presa sin piel", "prep": "Hierbas naturales."},
-        {"nombre": "Zapallitos rellenos con carne magra", "mh": "2 unidades", "prep": "Carne picada especial."}
+        {"nombre": "Zapallitos rellenos con carne magra", "mh": "2 unidades", "prep": "Carne picada especial."},
+        {"nombre": "Calabaza rellena con vegetales y queso", "mh": "1/2 unidad chica", "prep": "Al horno con choclo y cebolla."},
+        {"nombre": "Pastel de papas (carne magra y puré mixto)", "mh": "1 porción mediana", "prep": "Carne picada especial y puré mixto."},
+        {"nombre": "Fideos integrales con brócoli", "mh": "1 plato mediano", "prep": "Fideos al dente con brócoli al vapor."},
+        {"nombre": "Medallones de lentejas con ensalada", "mh": "2 unidades", "prep": "Caseros con condimentos naturales."},
+        {"nombre": "Revuelto de zapallitos y huevo", "mh": "1 plato playo colmado", "prep": "Sin fritura, con rocío vegetal."},
+        {"nombre": "Pescado al paquete con vegetales", "mh": "1 filet grande", "prep": "Al horno envuelto en aluminio."},
+        {"nombre": "Guiso de lentejas saludable", "mh": "1 plato hondo", "prep": "Con mucha verdura y carne magra."},
+        {"nombre": "Ensalada de garbanzos, atún y huevo", "mh": "1 bowl grande", "prep": "Legumbres hervidas y atún natural."},
+        {"nombre": "Brochetas de carne y vegetales", "mh": "3 unidades", "prep": "A la plancha con morrón y cebolla."},
+        {"nombre": "Omelette de espinaca y queso magro", "mh": "1 unidad grande", "prep": "Hecho con 2 huevos y espinaca."},
+        {"nombre": "Pechuga de pollo a la mostaza con puré", "mh": "1 pechuga chica", "prep": "Mostaza sin azúcar y puré de papas."},
+        {"nombre": "Berenjenas a la parmesana (light)", "mh": "2 rodajas grandes", "prep": "Al horno con salsa y queso magro."}
     ]
     trabajo = [
         {"nombre": "Sándwich integral de pollo y rúcula", "mh": "2 rodajas de pan", "prep": "Pollo hervido."},
         {"nombre": "Ensalada de arroz, atún y arvejas", "mh": "1 bowl mediano", "prep": "Atún al natural."},
         {"nombre": "Tarta de acelga y queso (vianda)", "mh": "1 porción grande", "prep": "Masa de salvado."},
-        {"nombre": "Wrap de carne y vegetales", "mh": "1 unidad grande", "prep": "Tortilla integral."}
+        {"nombre": "Wrap de carne y vegetales", "mh": "1 unidad grande", "prep": "Tortilla integral."},
+        {"nombre": "Ensalada de fideos fríos y vegetales", "mh": "1 bowl mediano", "prep": "Fideos tirabuzón y tomate."}
     ]
     dym = [
         {"nombre": "Infusión con tostadas integrales y queso", "mh": "1 taza y 2 tostadas", "prep": "Queso descremado."},
@@ -86,9 +107,10 @@ def cargar_db():
         {"nombre": "Mate cocido con leche y budín de avena", "mh": "1 taza y 1 rodaja", "prep": "Sin azúcar."},
         {"nombre": "Tostado integral de queso magro", "mh": "2 rodajas de pan", "prep": "En sandwichera."},
         {"nombre": "Leche descremada con copos de maíz", "mh": "1 taza mediana", "prep": "Sin azúcar."},
-        {"nombre": "Panqueque de avena con mermelada diet", "mh": "1 unidad", "prep": "Con claras y avena."}
+        {"nombre": "Panqueque de avena con mermelada diet", "mh": "1 unidad", "prep": "Con claras y avena."},
+        {"nombre": "Fruta con frutos secos", "mh": "1 bowl chico", "prep": "Fruta picada y 3 nueces."}
     ]
-    col = [{"nombre": "Fruta de estación", "mh": "1 unidad", "prep": "Lavar bien."}, {"nombre": "Yogur descremado", "mh": "1 pote", "prep": "Natural."}, {"nombre": "Huevo duro", "mh": "1 unidad", "prep": "Hervido."}, {"nombre": "Gelatina diet", "mh": "1 compotera", "prep": "Con fruta."}]
+    col = [{"nombre": "Fruta de estación", "mh": "1 unidad", "prep": "Lavar bien."}, {"nombre": "Yogur descremado", "mh": "1 pote", "prep": "Natural."}, {"nombre": "Huevo duro", "mh": "1 unidad", "prep": "Hervido."}, {"nombre": "Gelatina diet", "mh": "1 compotera", "prep": "Con fruta."}, {"nombre": "Puñado de almendras", "mh": "10 unidades", "prep": "Crudas."}]
     return {"dym": dym, "ayc": ayc, "trabajo": trabajo, "col": col}
 
 if 'db' not in st.session_state: st.session_state.db = cargar_db()
@@ -103,7 +125,6 @@ with c1:
     edad = st.number_input("Edad", min_value=1, value=30, key="in_edad")
 with c2:
     peso_actual = st.number_input("Peso Actual (kg)", value=75.0, step=0.1, key="in_peso")
-    # Talla sin decimales
     talla_cm = st.number_input("Talla (cm)", value=160, step=1, format="%d", key="in_talla")
 with c3:
     af_sel = st.selectbox("Actividad Física", ["Sedentario", "Leve", "Moderado", "Intenso"], key="sel_af")
@@ -130,7 +151,6 @@ else:
     label_p = "Peso Ideal (Broca)"
 
 cp1, cp2 = st.columns(2)
-# FIX: Key dinámica ahora incluye el peso_actual para que actualice PI/PIC automáticamente
 p_obj = cp1.number_input(f"{label_p} - Sugerido", value=float(val_sugerido), key=f"p_obj_dyn_{sexo}_{talla_cm}_{peso_actual}")
 kcal_final = (p_obj * 22) * af_val
 cp2.info(f"**Prescripción:** {t_plan} de {kcal_final:.0f} kcal/día")
@@ -145,22 +165,17 @@ if st.button("🚀 GENERAR PLAN", key="btn_generar"):
     dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     st.session_state.menu = {}
     
-    # Para seguimiento anti-repetición
     ultimo_dym = []
     ultimo_ayc = []
     ultimo_col = []
 
     for d in dias:
-        # Selección de Desayuno y Merienda
         pool_dym = [x for x in st.session_state.db["dym"] if x not in ultimo_dym]
         dym_hoy = random.sample(pool_dym if len(pool_dym) >= 2 else st.session_state.db["dym"], 2)
         
-        # Selección de Almuerzo y Cena
         if alm_trabajo:
-            # En vianda, comparamos con lo que hubo antes para no repetir el sándwich hoy si hubo ayer
             pool_trab = [x for x in st.session_state.db["trabajo"] if x not in ultimo_ayc]
             almuerzo = random.choice(pool_trab if pool_trab else st.session_state.db["trabajo"])
-            
             pool_cena = [x for x in st.session_state.db["ayc"] if x not in ultimo_ayc and x != almuerzo]
             cena = random.choice(pool_cena if pool_cena else st.session_state.db["ayc"])
         else:
@@ -168,7 +183,6 @@ if st.button("🚀 GENERAR PLAN", key="btn_generar"):
             ayc_hoy = random.sample(pool_ayc if len(pool_ayc) >= 2 else st.session_state.db["ayc"], 2)
             almuerzo, cena = ayc_hoy[0], ayc_hoy[1]
             
-        # Selección de Colaciones
         if colaciones_on:
             pool_col = [x for x in st.session_state.db["col"] if x not in ultimo_col]
             cols_hoy = random.sample(pool_col if len(pool_col) >= 2 else st.session_state.db["col"], 2)
@@ -183,7 +197,6 @@ if st.button("🚀 GENERAR PLAN", key="btn_generar"):
             "Colaciones": cols_hoy
         }
         
-        # Actualizar memoria para el día siguiente
         ultimo_dym = dym_hoy
         ultimo_ayc = [almuerzo, cena]
         ultimo_col = cols_hoy
