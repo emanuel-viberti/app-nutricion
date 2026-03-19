@@ -2,8 +2,6 @@ import streamlit as st
 import random
 from fpdf import FPDF
 import datetime
-import json
-import os
 
 st.set_page_config(page_title="NutriAsistente AR", layout="wide")
 
@@ -64,14 +62,9 @@ nutri_info = {
     "contacto": st.sidebar.text_input("Contacto", "Email / Celular", key="nutri_cont")
 }
 
-# --- 3. BASE DE DATOS AMPLIADA ---
+# --- 3. BASE DE DATOS INTEGRADA (AMPLIADA) ---
 def cargar_db():
-    # Si tienes el archivo platos.json en tu GitHub/Carpeta, lo cargará automáticamente
-    if os.path.exists('platos.json'):
-        with open('platos.json', 'r', encoding='utf-8') as f:
-            return json.load(f)
-    
-    # Si no existe el JSON, usamos esta lista ampliada (20 platos) para evitar repeticiones
+    # 20 Opciones de Almuerzo y Cena
     ayc = [
         {"nombre": "Milanesa de peceto con puré de calabaza", "mh": "1 unid. med. y 1 taza de puré", "prep": "Al horno con rocío vegetal."},
         {"nombre": "Filet de merluza al limón con ensalada", "mh": "1 filet grande y 1 plato playo", "prep": "Pescado a la plancha."},
@@ -94,13 +87,17 @@ def cargar_db():
         {"nombre": "Pechuga de pollo a la mostaza con puré", "mh": "1 pechuga chica", "prep": "Mostaza sin azúcar y puré de papas."},
         {"nombre": "Berenjenas a la parmesana (light)", "mh": "2 rodajas grandes", "prep": "Al horno con salsa y queso magro."}
     ]
+    # Opciones de Almuerzo en el Trabajo (Viandas rápidas)
     trabajo = [
         {"nombre": "Sándwich integral de pollo y rúcula", "mh": "2 rodajas de pan", "prep": "Pollo hervido."},
         {"nombre": "Ensalada de arroz, atún y arvejas", "mh": "1 bowl mediano", "prep": "Atún al natural."},
         {"nombre": "Tarta de acelga y queso (vianda)", "mh": "1 porción grande", "prep": "Masa de salvado."},
         {"nombre": "Wrap de carne y vegetales", "mh": "1 unidad grande", "prep": "Tortilla integral."},
-        {"nombre": "Ensalada de fideos fríos y vegetales", "mh": "1 bowl mediano", "prep": "Fideos tirabuzón y tomate."}
+        {"nombre": "Ensalada de fideos fríos y vegetales", "mh": "1 bowl mediano", "prep": "Fideos tirabuzón y tomate."},
+        {"nombre": "Ensalada de lentejas, tomate y zanahoria", "mh": "1 bowl mediano", "prep": "Lentejas hervidas y vegetales crudos."},
+        {"nombre": "Rollitos de jamón cocido y queso con ensalada", "mh": "3 rollitos", "prep": "Jamón cocido natural y queso magro."}
     ]
+    # Desayuno y Merienda
     dym = [
         {"nombre": "Infusión con tostadas integrales y queso", "mh": "1 taza y 2 tostadas", "prep": "Queso descremado."},
         {"nombre": "Yogur descremado con granola y banana", "mh": "1 pote y 1/2 banana", "prep": "Mezclar al momento."},
@@ -108,9 +105,22 @@ def cargar_db():
         {"nombre": "Tostado integral de queso magro", "mh": "2 rodajas de pan", "prep": "En sandwichera."},
         {"nombre": "Leche descremada con copos de maíz", "mh": "1 taza mediana", "prep": "Sin azúcar."},
         {"nombre": "Panqueque de avena con mermelada diet", "mh": "1 unidad", "prep": "Con claras y avena."},
-        {"nombre": "Fruta con frutos secos", "mh": "1 bowl chico", "prep": "Fruta picada y 3 nueces."}
+        {"nombre": "Fruta con frutos secos", "mh": "1 bowl chico", "prep": "Fruta picada y 3 nueces."},
+        {"nombre": "Galletitas de arroz con queso y mermelada", "mh": "3 unidades", "prep": "Queso blanco descremado."},
+        {"nombre": "Licuado de banana con leche descremada", "mh": "1 vaso grande", "prep": "Sin azúcar agregada."},
+        {"nombre": "Omelette dulce de claras y manzana", "mh": "1 unidad", "prep": "Manzana rallada y claras."}
     ]
-    col = [{"nombre": "Fruta de estación", "mh": "1 unidad", "prep": "Lavar bien."}, {"nombre": "Yogur descremado", "mh": "1 pote", "prep": "Natural."}, {"nombre": "Huevo duro", "mh": "1 unidad", "prep": "Hervido."}, {"nombre": "Gelatina diet", "mh": "1 compotera", "prep": "Con fruta."}, {"nombre": "Puñado de almendras", "mh": "10 unidades", "prep": "Crudas."}]
+    # Colaciones
+    col = [
+        {"nombre": "Fruta de estación", "mh": "1 unidad", "prep": "Lavar bien."},
+        {"nombre": "Yogur descremado", "mh": "1 pote", "prep": "Natural."},
+        {"nombre": "Huevo duro", "mh": "1 unidad", "prep": "Hervido."},
+        {"nombre": "Gelatina diet", "mh": "1 compotera", "prep": "Con fruta."},
+        {"nombre": "Puñado de almendras", "mh": "10 unidades", "prep": "Crudas."},
+        {"nombre": "Bastoncitos de zanahoria", "mh": "1 taza", "prep": "Crudos y frescos."},
+        {"nombre": "Queso magro en cubitos", "mh": "1 feta gruesa", "prep": "Queso tipo Tybo light."},
+        {"nombre": "Tomates cherry", "mh": "10 unidades", "prep": "Lavar y servir."}
+    ]
     return {"dym": dym, "ayc": ayc, "trabajo": trabajo, "col": col}
 
 if 'db' not in st.session_state: st.session_state.db = cargar_db()
