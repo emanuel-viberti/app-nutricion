@@ -1,58 +1,41 @@
 import streamlit as st
 import random
 
-st.set_page_config(page_title="NutriAsistente AR", layout="wide")
+st.set_page_config(page_title="NutriAsistente AR Pro", layout="wide")
 
-# --- BASE DE DATOS DE 100 PLATOS ---
+# --- BASE DE DATOS DE 100 PLATOS CON LÓGICA DE PORCIONES ---
 def cargar_base_datos():
     dym = [
-        "Infusión con 2 tostadas integrales y queso untable", "Yogur descremado con granola y media banana",
-        "Mate con 3 galletitas de agua y queso por salut light", "Café con leche y 1 macedonia de frutas",
-        "Tostado de pan integral con queso y tomate", "Infusión con 2 galletas de arroz y mermelada diet",
-        "Yogur con 3 nueces y 1 cda de avena", "Licuado de durazno con agua y 2 tostadas integrales",
-        "Mate cocido con leche y 1 marquise de manzana saludable", "Té con limón y 3 vainillas",
-        "Omelette de claras con queso y 1 kiwi", "Infusión con 1 rodaja de budín de avena",
-        "Yogur con cereales sin azúcar y frutillas", "Leche descremada con copos de maíz (1/2 taza)",
-        "Café con 1 tostada con huevo revuelto", "Infusión con sándwich de pan negro, queso y pepino",
-        "Mate con 2 bizcochos de avena caseros", "Yogur con mix de semillas (lino, chía)",
-        "Tostada con ricota descremada y ralladura de limón", "Infusión con 1 pera y 2 nueces",
-        "Batido de proteínas casero (leche y fruta)", "Té verde con 2 galletitas de salvado",
-        "Panqueque de avena con dulce de leche diet", "Ensalada de frutas con copete de yogur",
-        "Mate cocido con 1 bay biscuit", "Infusión con 2 grisines integrales y queso",
-        "Café con leche y macedonia de naranja y pomelo", "Yogur descremado firme con almendras",
-        "Tostada integral con hummus de garbanzo", "Infusión con 1 manzana asada con canela"
+        "Infusión con tostadas integrales y queso untable", "Yogur descremado con granola y banana",
+        "Mate con galletitas de agua y queso por salut light", "Café con leche y macedonia de frutas",
+        "Tostado de pan integral con queso y tomate", "Infusión con galletas de arroz y mermelada diet",
+        "Yogur con nueces y avena", "Licuado de durazno y tostadas integrales",
+        "Mate cocido con leche y budín de avena casero", "Té con limón y vainillas",
+        "Omelette de claras con queso y fruta", "Infusión con bizcochos de avena caseros",
+        "Yogur con cereales sin azúcar y frutillas", "Leche descremada con copos de maíz",
+        "Tostada con huevo revuelto e infusión", "Sándwich de pan negro, queso y pepino",
+        "Tostada con ricota descremada y limón", "Batido de proteínas (leche y fruta)",
+        "Panqueque de avena con dulce de leche diet", "Ensalada de frutas con yogur"
     ]
     
     ayc = [
-        "Milanesa de peceto al horno con puré de calabaza + 1 naranja", "Filet de merluza con ensalada de rúcula y tomate + 1 manzana",
-        "Pollo al horno sin piel con vegetales asados + Gelatina diet", "Bife de cuadril magro con ensalada mixta + 1 pera",
-        "Tarta de zapallitos (sin tapa) + 1 durazno", "Canelones de verdura con salsa fileto + 1 mandarina",
-        "Wok de pollo y vegetales + 1 kiwi", "Zapallitos rellenos con carne magra y queso + 1 rodaja de piña",
-        "Ensalada de lentejas, tomate y huevo + 1 manzana", "Fideos integrales con brócoli y ajo + Gelatina diet",
-        "Hamburguesa de lentejas con ensalada + 1 naranja", "Cazuela de pollo con calabaza y arvejas + 1 ciruela",
-        "Pastel de papa y carne magra + 1 mandarina", "Tortilla de espinaca al horno + 1 pera",
-        "Arroz integral con atún y vegetales + 1 durazno", "Brochetas de carne y verduras + 1 naranja",
-        "Calabaza rellena con choclo y queso + Gelatina diet", "Budín de zanahoria con hojas verdes + 1 banana chica",
-        "Suprema a la mostaza con puré mixto + 1 manzana", "Salpicón de ave completo + 1 kiwi",
-        "Risotto de vegetales y hongos + 1 pera", "Costillita de cerdo magra con puré de manzana + 1 rodaja de piña",
-        "Omelette de espinaca y queso + Gelatina diet", "Guiso de lentejas saludable + 1 mandarina",
-        "Albóndigas de pollo con arroz + 1 durazno", "Pizza con masa integral y vegetales + 1 manzana",
-        "Rollitos de merluza con puré de berenjena + 1 naranja", "Ensalada de garbanzos y pimiento + 1 pera",
-        "Pescado a la vasca con papas + Gelatina diet", "Pollo al verdeo con chauchas + 1 mandarina",
-        "Tarta de calabaza y choclo + 1 manzana", "Bife de lomo con remolacha y huevo + 1 naranja",
-        "Estofado de ternera con verduras + 1 pera", "Wraps de lechuga con carne y zanahoria + 1 durazno",
-        "Revuelto gramajo saludable + 1 kiwi", "Torrejas de acelga al horno + Gelatina diet",
-        "Lomito al plato con rúcula + 1 rodaja de piña", "Pimientos rellenos con arroz + 1 naranja",
-        "Suprema grillada con chaucha y huevo + 1 manzana", "Colita de cuadril con calabaza asada + 1 pera",
-        "Soufflé de zapallitos + Gelatina diet", "Ensalada de pasta fría con queso + 1 durazno",
-        "Medallón de merluza con zanahoria + 1 mandarina", "Wok de carne con cebolla y morrón + 1 kiwi",
-        "Pollo a la provenzal con papas + 1 manzana", "Zapallo cabutiá con ricota + 1 naranja",
-        "Canelones de choclo con salsa blanca light + 1 pera", "Matambre de pollo con ensalada + Gelatina diet",
-        "Milanesa de berenjena con queso + 1 mandarina", "Cuscús con vegetales y pollo + 1 durazno"
+        "Milanesa de peceto al horno con puré de calabaza", "Filet de merluza con ensalada de rúcula y tomate",
+        "Pollo al horno sin piel con vegetales asados", "Bife de cuadril magro con ensalada mixta",
+        "Tarta de zapallitos (sin tapa superior)", "Canelones de verdura con salsa fileto",
+        "Wok de pollo y vegetales", "Zapallitos rellenos con carne magra y queso",
+        "Ensalada de lentejas, tomate y huevo", "Fideos integrales con brócoli y ajo",
+        "Hamburguesa de lentejas con ensalada de repollo", "Cazuela de pollo con calabaza y arvejas",
+        "Pastel de papa y carne magra", "Tortilla de espinaca al horno",
+        "Arroz integral con atún y vegetales", "Brochetas de carne y verduras",
+        "Calabaza rellena con choclo y queso", "Budín de zanahoria con hojas verdes",
+        "Suprema a la mostaza con puré mixto", "Salpicón de ave completo",
+        "Risotto de vegetales y hongos", "Costillita de cerdo magra con puré de manzana",
+        "Guiso de lentejas saludable (sin embutidos)", "Albóndigas de pollo con arroz",
+        "Pizza con masa integral y vegetales"
     ]
 
-    trabajo = ["Sándwich integral de pollo", "Ensalada de arroz y atún", "Tarta de acelga", "Empanadas de verdura (2)", "Wrap de carne", "Ensalada de fideos", "Budín de zapallitos", "Milanesa de pollo al pan", "Ensalada de lentejas", "Rolls de jamón y queso"]
-    colaciones = ["1 Fruta", "1 Yogur", "2 Nueces", "1 Barrita", "3 Almendras", "Postre diet", "Queso magro", "1 Huevo duro", "Gelatina con fruta", "2 Orejones"]
+    trabajo = ["Sándwich integral de pollo", "Ensalada de arroz y atún", "Tarta de acelga", "Empanadas de verdura (2)", "Wrap de carne", "Ensalada de fideos", "Budín de zapallitos", "Milanesa de pollo al pan"]
+    colaciones = ["1 Fruta de estación", "1 Yogur descremado", "Nueces/Almendras", "Barrita de cereal diet", "Postre de leche diet", "Queso magro", "Huevo duro", "Gelatina diet con frutas"]
     
     return {"dym": dym, "ayc": ayc, "trabajo": trabajo, "colacion": colaciones}
 
@@ -85,7 +68,6 @@ with c3:
     af_opciones = {"Sedentario": 1.2, "Leve": 1.3, "Moderado": 1.5, "Intenso": 1.7}
     af_label = st.selectbox("Actividad Física", list(af_opciones.keys()))
 
-# Diagnóstico IMC
 talla_m = talla_cm / 100
 imc = peso_actual / (talla_m ** 2)
 if imc < 18.5: diag = "Delgadez"
@@ -95,14 +77,12 @@ else: diag = "Obesidad"
 st.subheader(f"Diagnóstico: {diag} (IMC: {imc:.2f})")
 st.divider()
 
-# --- 2. PRESCRIPCIÓN REACTIVA ---
-st.header("2. Prescripción")
+# --- 2. OBJETIVOS Y PRESCRIPCIÓN ---
+st.header("2. Objetivos y Prescripción")
 
-# Lógica PI Broca (Femenino 0.9 / Masculino 1.0)
 base_broca = talla_cm - 100
 pi_sugerido = base_broca * 0.90 if sexo == "Femenino" else base_broca
 
-# Lógica Wilkens si hay Sobrepeso
 if imc >= 25:
     valor_sugerido = ((peso_actual - pi_sugerido) * 0.25) + pi_sugerido
     tipo_peso = "Peso Ideal Corregido (Wilkens)"
@@ -110,25 +90,30 @@ else:
     valor_sugerido = pi_sugerido
     tipo_peso = "Peso Ideal (Broca)"
 
-cp1, cp2 = st.columns(2)
-with cp1:
-    # Usamos una clave (key) que cambie con el sexo/talla para forzar el refresco del valor
-    p_obj = st.number_input(f"{tipo_peso} - Editable", value=float(valor_sugerido), key=f"p_obj_{sexo}_{talla_cm}")
+obj_col1, obj_col2 = st.columns(2)
+with obj_col1:
+    p_obj = st.number_input(f"{tipo_peso} - Sugerido", value=float(valor_sugerido), key=f"p_{sexo}_{talla_cm}")
+    st.write("**Objetivos Terapéuticos:**")
+    st.write("- Lograr un descenso de peso gradual y sostenible.")
+    st.write("- Educación alimentaria y control de porciones.")
+    st.write("- Aumento del gasto energético mediante AF.")
 
-with cp2:
+with obj_col2:
     kcal_final = (p_obj * 22) * af_opciones[af_label]
-    st.info(f"**Requerimiento:** {kcal_final:.0f} kcal/día")
-    st.write(f"CHO 55% | PRO 17.5% | GRA 27.5%")
+    st.success(f"**Prescripción Dietoterápica:**")
+    st.write(f"Plan Alimentario Hipocalórico de **{kcal_final:.0f} kcal/día**.")
+    st.write(f"Distribución: CHO 55% | PRO 17.5% | GRA 27.5%")
+    st.write(f"Fibra: 25-30g/día. Hidratación: 2L de agua mínimo.")
 
 st.divider()
 
-# --- 3. MENÚ ---
-st.header("3. Plan Semanal")
+# --- 3. MENÚ SEMANAL ---
+st.header("3. Planificación del Menú")
 col_c1, col_c2 = st.columns(2)
-alm_trabajo = col_c1.checkbox("Almuerzo en el trabajo")
-colaciones_on = col_c2.checkbox("Añadir 2 colaciones diarias")
+alm_trabajo = col_c1.checkbox("¿Almuerzos fuera de casa?")
+colaciones_on = col_c2.checkbox("Incluir colaciones (Mañana/Tarde)")
 
-if st.button("🚀 GENERAR PLAN SEMANAL"):
+if st.button("🚀 GENERAR PLAN SEMANAL INTELIGENTE"):
     usados = set()
     dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     tipo_a = "trabajo" if alm_trabajo else "ayc"
@@ -142,14 +127,21 @@ if st.button("🚀 GENERAR PLAN SEMANAL"):
     } for d in dias}
 
 if st.session_state.menu_semanal:
+    # Definir porción según Kcal totales
+    if kcal_final < 1600: porcion = "Porción Moderada (Plato chico)"
+    elif kcal_final < 2000: porcion = "Porción Estándar (Plato playo)"
+    else: porcion = "Porción Abundante (+ Guarnición extra)"
+
     for dia, comidas in st.session_state.menu_semanal.items():
         with st.expander(f"📅 {dia}"):
             for tiempo, plato in comidas.items():
                 if tiempo == "Colaciones":
-                    for p in plato: st.write(f"🔸 **Colación:** {p}")
+                    for p in plato: st.write(f"🔸 **Colación:** {p} + 1 vaso de agua")
                 else:
                     ci, cb = st.columns([0.85, 0.15])
-                    ci.write(f"🍴 **{tiempo}:** {plato}")
+                    # Aquí la "magia" de la porción elástica
+                    kcal_tiempo = kcal_final * (0.3 if tiempo in ["Almuerzo", "Cena"] else 0.2)
+                    ci.write(f"🍴 **{tiempo}:** {plato}  \n  _({porcion} - Aprox {kcal_tiempo:.0f} kcal)_")
                     if cb.button("🔄", key=f"sw_{dia}_{tiempo}"):
                         t = "dym" if tiempo in ["Desayuno", "Merienda"] else ("trabajo" if (tiempo == "Almuerzo" and alm_trabajo) else "ayc")
                         st.session_state.menu_semanal[dia][tiempo] = elegir_plato(t, set())
