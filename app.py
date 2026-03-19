@@ -12,13 +12,11 @@ def generar_pdf(datos_nutri, datos_pac, menu, diag_info):
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_font("Arial", "B", 16)
     
-    # Encabezado
     pdf.cell(0, 10, f"{datos_nutri['nombre']}", ln=True, align='C')
     pdf.set_font("Arial", "", 10)
     pdf.cell(0, 5, f"Matrícula: {datos_nutri['matricula']} | Contacto: {datos_nutri['contacto']}", ln=True, align='C')
     pdf.ln(10)
     
-    # Datos del Paciente
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 10, f"PLAN ALIMENTARIO: {datos_pac['nombre'].upper()}", ln=True)
     pdf.set_font("Arial", "", 10)
@@ -29,7 +27,6 @@ def generar_pdf(datos_nutri, datos_pac, menu, diag_info):
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(5)
     
-    # Menú Semanal en PDF
     for dia, comidas in menu.items():
         pdf.set_font("Arial", "B", 11)
         pdf.set_fill_color(240, 240, 240)
@@ -57,7 +54,7 @@ def generar_pdf(datos_nutri, datos_pac, menu, diag_info):
             
     return pdf.output(dest='S').encode('latin-1')
 
-# --- 2. DATOS DEL NUTRICIONISTA (Sidebar) ---
+# --- 2. DATOS DEL NUTRICIONISTA ---
 st.sidebar.header("Configuración de Firma")
 nutri_info = {
     "nombre": st.sidebar.text_input("Nombre y Apellido", "Lic. en Nutrición", key="nutri_nom"),
@@ -68,30 +65,30 @@ nutri_info = {
 # --- 3. BASE DE DATOS ---
 def cargar_db():
     ayc = [
-        {"nombre": "Milanesa de peceto con puré de calabaza", "mh": "1 unid. med. y 1 taza de puré", "prep": "Al horno con rocío vegetal. Puré sin manteca."},
-        {"nombre": "Filet de merluza al limón con ensalada", "mh": "1 filet grande y 1 plato playo de vegetales", "prep": "Pescado a la plancha. Ensalada cruda."},
-        {"nombre": "Tarta de zapallitos (sin tapa)", "mh": "1/4 de unidad", "prep": "Masa integral solo base. Relleno con huevo y queso magro."},
-        {"nombre": "Wok de pollo y vegetales", "mh": "1 plato playo colmado", "prep": "Saltear con poco aceite. Vegetales al dente."},
-        {"nombre": "Bife de cuadril con ensalada mixta", "mh": "1 bife med. y 1 plato de vegetales", "prep": "Carne sin grasa visible a la plancha."},
-        {"nombre": "Canelones de verdura con salsa fileto", "mh": "2 unidades", "prep": "Masa de panqueque liviana, salsa sin fritura."},
-        {"nombre": "Pollo al horno con vegetales asados", "mh": "1 presa sin piel y 1 taza de vegetales", "prep": "Cocción lenta al horno con hierbas."},
-        {"nombre": "Zapallitos rellenos con carne magra", "mh": "2 unidades", "prep": "Relleno de carne picada especial y cebolla."}
+        {"nombre": "Milanesa de peceto con puré de calabaza", "mh": "1 unid. med. y 1 taza de puré", "prep": "Al horno con rocío vegetal."},
+        {"nombre": "Filet de merluza al limón con ensalada", "mh": "1 filet grande y 1 plato playo", "prep": "Pescado a la plancha."},
+        {"nombre": "Tarta de zapallitos (sin tapa)", "mh": "1/4 de unidad", "prep": "Masa integral solo base."},
+        {"nombre": "Wok de pollo y vegetales", "mh": "1 plato playo colmado", "prep": "Saltear con poco aceite."},
+        {"nombre": "Bife de cuadril con ensalada mixta", "mh": "1 bife med. y 1 plato de vegetales", "prep": "Carne a la plancha."},
+        {"nombre": "Canelones de verdura con salsa fileto", "mh": "2 unidades", "prep": "Masa liviana."},
+        {"nombre": "Pollo al horno con vegetales asados", "mh": "1 presa sin piel", "prep": "Hierbas naturales."},
+        {"nombre": "Zapallitos rellenos con carne magra", "mh": "2 unidades", "prep": "Carne picada especial."}
     ]
     trabajo = [
-        {"nombre": "Sándwich integral de pollo y rúcula", "mh": "2 rodajas de pan y 1 pechuga chica", "prep": "Sin aderezos grasos."},
+        {"nombre": "Sándwich integral de pollo y rúcula", "mh": "2 rodajas de pan", "prep": "Pollo hervido."},
         {"nombre": "Ensalada de arroz, atún y arvejas", "mh": "1 bowl mediano", "prep": "Atún al natural."},
         {"nombre": "Tarta de acelga y queso (vianda)", "mh": "1 porción grande", "prep": "Masa de salvado."},
         {"nombre": "Wrap de carne y vegetales", "mh": "1 unidad grande", "prep": "Tortilla integral."}
     ]
     dym = [
-        {"nombre": "Infusión con tostadas integrales y queso", "mh": "1 taza y 2 tostadas", "prep": "Queso blanco descremado."},
-        {"nombre": "Yogur descremado con granola y banana", "mh": "1 pote, 2 cdas granola, 1/2 banana", "prep": "Mezclar al momento."},
-        {"nombre": "Mate cocido con leche y budín de avena", "mh": "1 taza y 1 rodaja med.", "prep": "Budín casero sin azúcar."},
-        {"nombre": "Tostado integral de queso magro", "mh": "2 rodajas de pan y 1 feta queso", "prep": "En sandwichera."},
-        {"nombre": "Leche descremada con copos de maíz", "mh": "1 taza mediana", "prep": "Copos sin azúcar."},
-        {"nombre": "Panqueque de avena con mermelada diet", "mh": "1 unidad grande", "prep": "Hecho con claras y avena."}
+        {"nombre": "Infusión con tostadas integrales y queso", "mh": "1 taza y 2 tostadas", "prep": "Queso descremado."},
+        {"nombre": "Yogur descremado con granola y banana", "mh": "1 pote y 1/2 banana", "prep": "Mezclar al momento."},
+        {"nombre": "Mate cocido con leche y budín de avena", "mh": "1 taza y 1 rodaja", "prep": "Sin azúcar."},
+        {"nombre": "Tostado integral de queso magro", "mh": "2 rodajas de pan", "prep": "En sandwichera."},
+        {"nombre": "Leche descremada con copos de maíz", "mh": "1 taza mediana", "prep": "Sin azúcar."},
+        {"nombre": "Panqueque de avena con mermelada diet", "mh": "1 unidad", "prep": "Con claras y avena."}
     ]
-    col = [{"nombre": "Fruta de estación", "mh": "1 unidad med.", "prep": "Lavar bien."}, {"nombre": "Yogur descremado", "mh": "1 pote", "prep": "Sin azúcar."}, {"nombre": "Huevo duro", "mh": "1 unidad", "prep": "Hervir 10 min."}, {"nombre": "Gelatina diet", "mh": "1 compotera", "prep": "Con trozos de fruta."}]
+    col = [{"nombre": "Fruta de estación", "mh": "1 unidad", "prep": "Lavar bien."}, {"nombre": "Yogur descremado", "mh": "1 pote", "prep": "Natural."}, {"nombre": "Huevo duro", "mh": "1 unidad", "prep": "Hervido."}, {"nombre": "Gelatina diet", "mh": "1 compotera", "prep": "Con fruta."}]
     return {"dym": dym, "ayc": ayc, "trabajo": trabajo, "col": col}
 
 if 'db' not in st.session_state: st.session_state.db = cargar_db()
@@ -122,11 +119,8 @@ else: diag, t_plan = "Obesidad Grado III", "Plan Hipocalórico"
 
 st.subheader(f"Diagnóstico: {diag} (IMC: {imc:.2f})")
 
-# --- 5. PRESCRIPCIÓN (PI vs PIC CONDICIONAL Y REACTIVO) ---
-st.header("2. Prescripción")
+# --- 5. PRESCRIPCIÓN ---
 pi_broca = (talla_cm - 100) * (0.9 if sexo == "Femenino" else 1.0)
-
-# Lógica condicional Obesidad (PIC) vs Resto (PI)
 if imc >= 30.0:
     val_sugerido = ((peso_actual - pi_broca) * 0.25) + pi_broca
     label_p = "Peso Ideal Corregido (Wilkens)"
@@ -135,13 +129,11 @@ else:
     label_p = "Peso Ideal (Broca)"
 
 cp1, cp2 = st.columns(2)
-# FIX: Usamos key dinámica basada en sexo y talla para que el valor sugerido se actualice al cambiar los selectores
 p_obj = cp1.number_input(f"{label_p} - Sugerido", value=float(val_sugerido), key=f"p_obj_dyn_{sexo}_{talla_cm}")
-
 kcal_final = (p_obj * 22) * af_val
 cp2.info(f"**Prescripción:** {t_plan} de {kcal_final:.0f} kcal/día")
 
-# --- 6. MENÚ ---
+# --- 6. MENÚ (Solución a repeticiones internas del día) ---
 st.divider()
 c_a, c_b = st.columns(2)
 alm_trabajo = c_a.checkbox("Almuerzo en el trabajo", key="check_trabajo")
@@ -149,24 +141,31 @@ colaciones_on = c_b.checkbox("Incluir colaciones (Mañana y Tarde)", key="check_
 
 if st.button("🚀 GENERAR PLAN", key="btn_generar"):
     dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-    
-    def obtener_lista_segura(clave, cantidad):
-        base = st.session_state.db[clave]
-        return random.choices(base, k=cantidad)
-
-    pool_dym = obtener_lista_segura("dym", 14)
-    pool_ayc = obtener_lista_segura("ayc", 14)
-    pool_trab = obtener_lista_segura("trabajo", 7)
-    pool_col = obtener_lista_segura("col", 14)
-
     st.session_state.menu = {}
-    for i, d in enumerate(dias):
+    
+    for d in dias:
+        # Selección de Desayuno y Merienda (distintos)
+        dym_hoy = random.sample(st.session_state.db["dym"], 2)
+        
+        # Selección de Almuerzo y Cena (distintos)
+        # Si es almuerzo trabajo, sacamos 1 de 'trabajo' y 1 de 'ayc'
+        # Si no, sacamos 2 distintos de 'ayc'
+        if alm_trabajo:
+            almuerzo = random.choice(st.session_state.db["trabajo"])
+            cena = random.choice(st.session_state.db["ayc"])
+        else:
+            ayc_hoy = random.sample(st.session_state.db["ayc"], 2)
+            almuerzo, cena = ayc_hoy[0], ayc_hoy[1]
+            
+        # Selección de Colaciones (distintas si están activas)
+        cols_hoy = random.sample(st.session_state.db["col"], 2) if colaciones_on else []
+
         st.session_state.menu[d] = {
-            "Desayuno": pool_dym[i],
-            "Almuerzo": pool_trab[i] if alm_trabajo else pool_ayc[i],
-            "Merienda": pool_dym[i+7],
-            "Cena": pool_ayc[i+7],
-            "Colaciones": [pool_col[i*2], pool_col[i*2+1]] if colaciones_on else []
+            "Desayuno": dym_hoy[0],
+            "Almuerzo": almuerzo,
+            "Merienda": dym_hoy[1],
+            "Cena": cena,
+            "Colaciones": cols_hoy
         }
 
 if st.session_state.menu:
@@ -185,10 +184,4 @@ if st.session_state.menu:
 
     st.divider()
     pdf_bytes = generar_pdf(nutri_info, {"nombre": nombre_pac, "edad": edad}, st.session_state.menu, {"diag": diag, "t_plan": t_plan, "kcal": kcal_final})
-    st.download_button(
-        label="💾 DESCARGAR PDF PROFESIONAL", 
-        data=pdf_bytes, 
-        file_name=f"Plan_{nombre_pac.replace(' ', '_')}.pdf", 
-        mime="application/pdf",
-        key="btn_descarga_pdf"
-    )
+    st.download_button("💾 DESCARGAR PDF PROFESIONAL", data=pdf_bytes, file_name=f"Plan_{nombre_pac.replace(' ', '_')}.pdf", mime="application/pdf", key="btn_descarga_pdf")
