@@ -1,15 +1,65 @@
 import streamlit as st
 import random
+from fpdf import FPDF
+import datetime
 
 st.set_page_config(page_title="NutriAsistente AR", layout="wide")
 
-# --- 1. DATOS DEL NUTRICIONISTA (Sidebar) ---
-st.sidebar.header("Configuración de Firma")
-nombre_nutri = st.sidebar.text_input("Nombre y Apellido", "Lic. en Nutrición")
-matricula = st.sidebar.text_input("Matrícula", "M.P. 0000")
-contacto = st.sidebar.text_input("Contacto", "Email / Celular")
+# --- 1. FUNCIÓN TÉCNICA PARA GENERAR EL PDF ---
+def generar_pdf(datos_nutri, datos_pac, menu, diag_info):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    
+    # Encabezado - Datos del Nutricionista
+    pdf.cell(0, 10, f"{datos_nutri['nombre']}", ln=True, align='C')
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 5, f"Matrícula: {datos_nutri['matricula']} | Contacto: {datos_nutri['contacto']}", ln=True, align='C')
+    pdf.ln(10)
+    
+    # Datos del Paciente
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, f"Plan Alimentario: {datos_pac['nombre']}", ln=True)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 5, f"Fecha: {datetime.date.today().strftime('%d/%m/%Y')} | Edad: {datos_pac['edad']} años", ln=True)
+    pdf.cell(0, 5, f"Diagnóstico: {diag_info['diag']} | Prescripción: {diag_info['t_plan']}", ln=True)
+    pdf.cell(0, 5, f"Calorías objetivo: {diag_info['kcal']:.0f} kcal/día", ln=True)
+    pdf.ln(10)
+    
+    # Menú Semanal
+    for dia, comidas in menu.items():
+        pdf.set_font("Arial", "B", 11)
+        pdf.set_fill_color(230, 230, 230)
+        pdf.cell(0, 8, f"--- {dia.upper()} ---", ln=True, fill=True)
+        pdf.ln(2)
+        
+        for tiempo, plato in comidas.items():
+            pdf.set_font("Arial", "B", 10)
+            if tiempo == "Colaciones":
+                for p in plato:
+                    pdf.cell(0, 5, f"Colación: {p['nombre']}", ln=True)
+                    pdf.set_font("Arial", "I", 9)
+                    pdf.multi_cell(0, 5, f"Porción: {p['mh']} | Prep: {p['prep']}")
+            else:
+                pdf.cell(0, 5, f"{tiempo}: {plato['nombre']}", ln=True)
+                pdf.set_font("Arial", "I", 9)
+                # Aquí incluimos lo que pediste: Medidas y Preparación solo en PDF
+                pdf.multi_cell(0, 5, f"Porción: {plato['mh']}")
+                pdf.multi_cell(0, 5, f"Preparación: {plato['prep']}")
+            pdf.ln(2)
+        pdf.ln(5)
+        
+    return pdf.output(dest='S')
 
-# --- 2. BASE DE DATOS ---
+# --- 2. DATOS DEL NUTRICIONISTA (Sidebar) ---
+st.sidebar.header("Configuración de Firma")
+nutri_info = {
+    "nombre": st.sidebar.text_input("Nombre y Apellido", "Lic. en Nutrición"),
+    "matricula": st.sidebar.text_input("Matrícula", "M.P. 0000"),
+    "contacto": st.sidebar.text_input("Contacto", "Email / Celular")
+}
+
+# --- 3. BASE DE DATOS (No se toca) ---
 def cargar_db():
     ayc = [
         {"nombre": "Milanesa de peceto con puré de calabaza", "mh": "1 unid. med. y 1 taza de puré", "prep": "Al horno con rocío vegetal. Puré sin manteca."},
@@ -32,7 +82,7 @@ def cargar_db():
 if 'db' not in st.session_state: st.session_state.db = cargar_db()
 if 'menu' not in st.session_state: st.session_state.menu = {}
 
-# --- 3. EVALUACIÓN Y DIAGNÓSTICO ---
+# --- 4. EVALUACIÓN Y DIAGNÓSTICO (No se toca) ---
 st.title("Generador Nutricional Profesional 🍏")
 st.header("1. Evaluación y Diagnóstico")
 
@@ -48,7 +98,6 @@ with c3:
     af_sel = st.selectbox("Actividad Física", ["Sedentario", "Leve", "Moderado", "Intenso"])
     af_val = {"Sedentario": 1.2, "Leve": 1.3, "Moderado": 1.5, "Intenso": 1.7}[af_sel]
 
-# Lógica IMC y Clasificación de Obesidad
 talla_m = talla_cm / 100
 imc = peso_actual / (talla_m ** 2)
 
@@ -62,11 +111,10 @@ else: diag, t_plan = "Obesidad Grado III", "Plan Hipocalórico"
 st.subheader(f"Diagnóstico: {diag} (IMC: {imc:.2f})")
 st.divider()
 
-# --- 4. PRESCRIPCIÓN (PI vs PIC CONDICIONAL) ---
+# --- 5. PRESCRIPCIÓN (Lógica Wilkens/Broca intacta) ---
 st.header("2. Prescripción")
 pi_broca = (talla_cm - 100) * (0.9 if sexo == "Femenino" else 1.0)
 
-# El PIC solo se calcula si el diagnóstico es Obesidad (Grado I, II o III)
 if imc >= 30.0:
     val_sugerido = ((peso_actual - pi_broca) * 0.25) + pi_broca
     label_peso = "Peso Ideal Corregido (Wilkens)"
@@ -84,7 +132,7 @@ with cp2:
 
 st.divider()
 
-# --- 5. MENÚ ---
+# --- 6. MENÚ (Lógica de Intercambio intacta) ---
 st.header("3. Plan Semanal")
 c_a, c_b = st.columns(2)
 alm_trabajo = c_a.checkbox("Almuerzo en el trabajo")
@@ -115,5 +163,16 @@ if st.session_state.menu:
                         st.session_state.menu[dia][tiempo] = random.choice(st.session_state.db[t])
                         st.rerun()
 
-st.divider()
-st.button("💾 DESCARGAR PDF PROFESIONAL")
+    # --- BOTÓN DE DESCARGA PDF ---
+    st.divider()
+    diag_info = {"diag": diag, "t_plan": t_plan, "kcal": kcal_final}
+    paciente_info = {"nombre": nombre_pac, "edad": edad}
+    
+    pdf_bytes = generar_pdf(nutri_info, paciente_info, st.session_state.menu, diag_info)
+    
+    st.download_button(
+        label="💾 DESCARGAR PLAN PROFESIONAL (PDF)",
+        data=pdf_bytes,
+        file_name=f"Plan_{nombre_pac}.pdf",
+        mime="application/pdf"
+    )
