@@ -20,7 +20,7 @@ def generar_pdf(datos_nutri, datos_pac, menu, diag_info):
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 10, f"PLAN ALIMENTARIO: {datos_pac['nombre'].upper()}", ln=True)
     pdf.set_font("Arial", "", 10)
-    pdf.cell(0, 5, f"Fecha: {datetime.date.today().strftime('%d/%m/%Y')} | Edad: {datos_pac['edad']} años", ln=True)
+    pdf.cell(0, 5, f"Fecha: {datetime.date.today().strftime('%d/%m/%Y')} | Talla: {int(datos_pac['talla'])} cm", ln=True)
     pdf.cell(0, 5, f"Diagnóstico: {diag_info['diag']} | Prescripción: {diag_info['t_plan']}", ln=True)
     pdf.cell(0, 5, f"Calorías objetivo: {diag_info['kcal']:.0f} kcal/día", ln=True)
     pdf.ln(5)
@@ -103,7 +103,8 @@ with c1:
     edad = st.number_input("Edad", min_value=1, value=30, key="in_edad")
 with c2:
     peso_actual = st.number_input("Peso Actual (kg)", value=75.0, step=0.1, key="in_peso")
-    talla_cm = st.number_input("Talla (cm)", value=160.0, step=0.1, key="in_talla")
+    # Talla sin decimales
+    talla_cm = st.number_input("Talla (cm)", value=160, step=1, format="%d", key="in_talla")
 with c3:
     af_sel = st.selectbox("Actividad Física", ["Sedentario", "Leve", "Moderado", "Intenso"], key="sel_af")
     af_val = {"Sedentario": 1.2, "Leve": 1.3, "Moderado": 1.5, "Intenso": 1.7}[af_sel]
@@ -129,11 +130,12 @@ else:
     label_p = "Peso Ideal (Broca)"
 
 cp1, cp2 = st.columns(2)
-p_obj = cp1.number_input(f"{label_p} - Sugerido", value=float(val_sugerido), key=f"p_obj_dyn_{sexo}_{talla_cm}")
+# FIX: Key dinámica ahora incluye el peso_actual para que actualice PI/PIC automáticamente
+p_obj = cp1.number_input(f"{label_p} - Sugerido", value=float(val_sugerido), key=f"p_obj_dyn_{sexo}_{talla_cm}_{peso_actual}")
 kcal_final = (p_obj * 22) * af_val
 cp2.info(f"**Prescripción:** {t_plan} de {kcal_final:.0f} kcal/día")
 
-# --- 6. MENÚ (Solución a repeticiones internas del día) ---
+# --- 6. MENÚ ---
 st.divider()
 c_a, c_b = st.columns(2)
 alm_trabajo = c_a.checkbox("Almuerzo en el trabajo", key="check_trabajo")
@@ -143,22 +145,35 @@ if st.button("🚀 GENERAR PLAN", key="btn_generar"):
     dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     st.session_state.menu = {}
     
+    # Para seguimiento anti-repetición
+    ultimo_dym = []
+    ultimo_ayc = []
+    ultimo_col = []
+
     for d in dias:
-        # Selección de Desayuno y Merienda (distintos)
-        dym_hoy = random.sample(st.session_state.db["dym"], 2)
+        # Selección de Desayuno y Merienda
+        pool_dym = [x for x in st.session_state.db["dym"] if x not in ultimo_dym]
+        dym_hoy = random.sample(pool_dym if len(pool_dym) >= 2 else st.session_state.db["dym"], 2)
         
-        # Selección de Almuerzo y Cena (distintos)
-        # Si es almuerzo trabajo, sacamos 1 de 'trabajo' y 1 de 'ayc'
-        # Si no, sacamos 2 distintos de 'ayc'
+        # Selección de Almuerzo y Cena
         if alm_trabajo:
-            almuerzo = random.choice(st.session_state.db["trabajo"])
-            cena = random.choice(st.session_state.db["ayc"])
+            # En vianda, comparamos con lo que hubo antes para no repetir el sándwich hoy si hubo ayer
+            pool_trab = [x for x in st.session_state.db["trabajo"] if x not in ultimo_ayc]
+            almuerzo = random.choice(pool_trab if pool_trab else st.session_state.db["trabajo"])
+            
+            pool_cena = [x for x in st.session_state.db["ayc"] if x not in ultimo_ayc and x != almuerzo]
+            cena = random.choice(pool_cena if pool_cena else st.session_state.db["ayc"])
         else:
-            ayc_hoy = random.sample(st.session_state.db["ayc"], 2)
+            pool_ayc = [x for x in st.session_state.db["ayc"] if x not in ultimo_ayc]
+            ayc_hoy = random.sample(pool_ayc if len(pool_ayc) >= 2 else st.session_state.db["ayc"], 2)
             almuerzo, cena = ayc_hoy[0], ayc_hoy[1]
             
-        # Selección de Colaciones (distintas si están activas)
-        cols_hoy = random.sample(st.session_state.db["col"], 2) if colaciones_on else []
+        # Selección de Colaciones
+        if colaciones_on:
+            pool_col = [x for x in st.session_state.db["col"] if x not in ultimo_col]
+            cols_hoy = random.sample(pool_col if len(pool_col) >= 2 else st.session_state.db["col"], 2)
+        else:
+            cols_hoy = []
 
         st.session_state.menu[d] = {
             "Desayuno": dym_hoy[0],
@@ -167,6 +182,11 @@ if st.button("🚀 GENERAR PLAN", key="btn_generar"):
             "Cena": cena,
             "Colaciones": cols_hoy
         }
+        
+        # Actualizar memoria para el día siguiente
+        ultimo_dym = dym_hoy
+        ultimo_ayc = [almuerzo, cena]
+        ultimo_col = cols_hoy
 
 if st.session_state.menu:
     for dia, comidas in st.session_state.menu.items():
@@ -183,5 +203,5 @@ if st.session_state.menu:
                         st.rerun()
 
     st.divider()
-    pdf_bytes = generar_pdf(nutri_info, {"nombre": nombre_pac, "edad": edad}, st.session_state.menu, {"diag": diag, "t_plan": t_plan, "kcal": kcal_final})
+    pdf_bytes = generar_pdf(nutri_info, {"nombre": nombre_pac, "edad": edad, "talla": talla_cm}, st.session_state.menu, {"diag": diag, "t_plan": t_plan, "kcal": kcal_final})
     st.download_button("💾 DESCARGAR PDF PROFESIONAL", data=pdf_bytes, file_name=f"Plan_{nombre_pac.replace(' ', '_')}.pdf", mime="application/pdf", key="btn_descarga_pdf")
