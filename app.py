@@ -5,10 +5,13 @@ import datetime
 
 st.set_page_config(page_title="NutriAsistente AR", layout="wide")
 
-# --- 1. FUNCIÓN TÉCNICA PARA GENERAR EL PDF ---
+# --- 1. FUNCIÓN TÉCNICA CORREGIDA PARA PDF ---
 def generar_pdf(datos_nutri, datos_pac, menu, diag_info):
     pdf = FPDF()
     pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    # Fuentes estándar para evitar errores de carga
     pdf.set_font("Arial", "B", 16)
     
     # Encabezado - Datos del Nutricionista
@@ -19,17 +22,20 @@ def generar_pdf(datos_nutri, datos_pac, menu, diag_info):
     
     # Datos del Paciente
     pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 10, f"Plan Alimentario: {datos_pac['nombre']}", ln=True)
+    pdf.cell(0, 10, f"PLAN ALIMENTARIO: {datos_pac['nombre'].upper()}", ln=True)
     pdf.set_font("Arial", "", 10)
     pdf.cell(0, 5, f"Fecha: {datetime.date.today().strftime('%d/%m/%Y')} | Edad: {datos_pac['edad']} años", ln=True)
     pdf.cell(0, 5, f"Diagnóstico: {diag_info['diag']} | Prescripción: {diag_info['t_plan']}", ln=True)
     pdf.cell(0, 5, f"Calorías objetivo: {diag_info['kcal']:.0f} kcal/día", ln=True)
-    pdf.ln(10)
+    pdf.ln(5)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(5)
     
     # Menú Semanal
     for dia, comidas in menu.items():
+        # Título del Día
         pdf.set_font("Arial", "B", 11)
-        pdf.set_fill_color(230, 230, 230)
+        pdf.set_fill_color(240, 240, 240)
         pdf.cell(0, 8, f"--- {dia.upper()} ---", ln=True, fill=True)
         pdf.ln(2)
         
@@ -39,17 +45,24 @@ def generar_pdf(datos_nutri, datos_pac, menu, diag_info):
                 for p in plato:
                     pdf.cell(0, 5, f"Colación: {p['nombre']}", ln=True)
                     pdf.set_font("Arial", "I", 9)
-                    pdf.multi_cell(0, 5, f"Porción: {p['mh']} | Prep: {p['prep']}")
+                    pdf.multi_cell(0, 5, f"Medida: {p['mh']} | Prep: {p['prep']}")
+                    pdf.ln(1)
             else:
-                pdf.cell(0, 5, f"{tiempo}: {plato['nombre']}", ln=True)
-                pdf.set_font("Arial", "I", 9)
-                # Aquí incluimos lo que pediste: Medidas y Preparación solo en PDF
-                pdf.multi_cell(0, 5, f"Porción: {plato['mh']}")
-                pdf.multi_cell(0, 5, f"Preparación: {plato['prep']}")
+                pdf.cell(0, 5, f"{tiempo.upper()}: {plato['nombre']}", ln=True)
+                pdf.set_font("Arial", "", 9)
+                # Aquí se incluyen los detalles que pediste solo para el PDF
+                pdf.multi_cell(0, 5, f"-> Medida Hogareña: {plato['mh']}")
+                pdf.multi_cell(0, 5, f"-> Preparación: {plato['prep']}")
             pdf.ln(2)
-        pdf.ln(5)
         
-    return pdf.output(dest='S')
+        # Salto de página si el día siguiente no entra
+        if pdf.get_y() > 250:
+            pdf.add_page()
+        else:
+            pdf.ln(3)
+            
+    # Retornamos los bytes del PDF usando latin-1 para evitar caracteres extraños en Windows/Linux
+    return pdf.output(dest='S').encode('latin-1')
 
 # --- 2. DATOS DEL NUTRICIONISTA (Sidebar) ---
 st.sidebar.header("Configuración de Firma")
@@ -59,7 +72,7 @@ nutri_info = {
     "contacto": st.sidebar.text_input("Contacto", "Email / Celular")
 }
 
-# --- 3. BASE DE DATOS (No se toca) ---
+# --- 3. BASE DE DATOS (Intacta) ---
 def cargar_db():
     ayc = [
         {"nombre": "Milanesa de peceto con puré de calabaza", "mh": "1 unid. med. y 1 taza de puré", "prep": "Al horno con rocío vegetal. Puré sin manteca."},
@@ -82,7 +95,7 @@ def cargar_db():
 if 'db' not in st.session_state: st.session_state.db = cargar_db()
 if 'menu' not in st.session_state: st.session_state.menu = {}
 
-# --- 4. EVALUACIÓN Y DIAGNÓSTICO (No se toca) ---
+# --- 4. EVALUACIÓN Y DIAGNÓSTICO (Intacta) ---
 st.title("Generador Nutricional Profesional 🍏")
 st.header("1. Evaluación y Diagnóstico")
 
@@ -111,7 +124,7 @@ else: diag, t_plan = "Obesidad Grado III", "Plan Hipocalórico"
 st.subheader(f"Diagnóstico: {diag} (IMC: {imc:.2f})")
 st.divider()
 
-# --- 5. PRESCRIPCIÓN (Lógica Wilkens/Broca intacta) ---
+# --- 5. PRESCRIPCIÓN (Lógica Wilkens/Broca Intacta) ---
 st.header("2. Prescripción")
 pi_broca = (talla_cm - 100) * (0.9 if sexo == "Femenino" else 1.0)
 
@@ -132,7 +145,7 @@ with cp2:
 
 st.divider()
 
-# --- 6. MENÚ (Lógica de Intercambio intacta) ---
+# --- 6. MENÚ (Lógica de Intercambio Intacta) ---
 st.header("3. Plan Semanal")
 c_a, c_b = st.columns(2)
 alm_trabajo = c_a.checkbox("Almuerzo en el trabajo")
@@ -163,16 +176,17 @@ if st.session_state.menu:
                         st.session_state.menu[dia][tiempo] = random.choice(st.session_state.db[t])
                         st.rerun()
 
-    # --- BOTÓN DE DESCARGA PDF ---
+    # --- BOTÓN DE DESCARGA PDF CORREGIDO ---
     st.divider()
     diag_info = {"diag": diag, "t_plan": t_plan, "kcal": kcal_final}
     paciente_info = {"nombre": nombre_pac, "edad": edad}
     
-    pdf_bytes = generar_pdf(nutri_info, paciente_info, st.session_state.menu, diag_info)
+    # Generamos los bytes del PDF
+    pdf_output = generar_pdf(nutri_info, paciente_info, st.session_state.menu, diag_info)
     
     st.download_button(
         label="💾 DESCARGAR PLAN PROFESIONAL (PDF)",
-        data=pdf_bytes,
-        file_name=f"Plan_{nombre_pac}.pdf",
+        data=pdf_output,
+        file_name=f"Plan_{nombre_pac.replace(' ', '_')}.pdf",
         mime="application/pdf"
     )
