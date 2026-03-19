@@ -10,47 +10,60 @@ def generar_pdf(datos_nutri, datos_pac, menu, diag_info):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_font("Arial", "B", 16)
     
-    pdf.cell(0, 10, f"{datos_nutri['nombre']}", ln=True, align='C')
-    pdf.set_font("Arial", "", 10)
+    # Encabezado del Profesional
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 8, f"{datos_nutri['nombre']}", ln=True, align='C')
+    pdf.set_font("Arial", "", 9)
     pdf.cell(0, 5, f"Matrícula: {datos_nutri['matricula']} | Contacto: {datos_nutri['contacto']}", ln=True, align='C')
-    pdf.ln(10)
-    
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 10, f"PLAN ALIMENTARIO: {datos_pac['nombre'].upper()}", ln=True)
-    pdf.set_font("Arial", "", 10)
-    pdf.cell(0, 5, f"Fecha: {datetime.date.today().strftime('%d/%m/%Y')} | Talla: {int(datos_pac['talla'])} cm", ln=True)
-    pdf.cell(0, 5, f"Diagnóstico: {diag_info['diag']} | Prescripción: {diag_info['t_plan']}", ln=True)
-    pdf.cell(0, 5, f"Calorías objetivo: {diag_info['kcal']:.0f} kcal/día", ln=True)
     pdf.ln(5)
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(5)
     
+    # Título y Datos del Paciente
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, f"PLAN ALIMENTARIO: {datos_pac['nombre'].upper()}", ln=True)
+    
+    # BLOQUE NUEVO: Indicadores Antropométricos 
+    pdf.set_font("Arial", "B", 9)
+    pdf.set_fill_color(245, 245, 245)
+    pdf.cell(0, 7, " INDICADORES Y DIAGNÓSTICO", ln=True, fill=True)
+    pdf.set_font("Arial", "", 9)
+    
+    col_w = 63
+    pdf.cell(col_w, 6, f"Peso Actual: {datos_pac['peso']} kg", ln=0)
+    pdf.cell(col_w, 6, f"Talla: {int(datos_pac['talla'])} cm", ln=0)
+    pdf.cell(col_w, 6, f"IMC: {datos_pac['imc']:.1f}", ln=1)
+    
+    pdf.cell(col_w, 6, f"Peso Ideal/Obj: {datos_pac['p_obj']:.1f} kg", ln=0)
+    pdf.cell(col_w, 6, f"Edad: {datos_pac['edad']} años", ln=0)
+    pdf.cell(col_w, 6, f"Actividad: {datos_pac['af']}", ln=1)
+    
+    pdf.set_font("Arial", "B", 9)
+    pdf.cell(0, 6, f"Diagnóstico: {diag_info['diag']} | Prescripción: {diag_info['t_plan']} ({diag_info['kcal']:.0f} kcal)", ln=1)
+    pdf.ln(5)
+    
+    # Cuerpo del menú (igual que antes)
     for dia, comidas in menu.items():
         pdf.set_font("Arial", "B", 11)
-        pdf.set_fill_color(240, 240, 240)
-        pdf.cell(0, 8, f"--- {dia.upper()} ---", ln=True, fill=True)
+        pdf.set_fill_color(230, 230, 230)
+        pdf.cell(0, 8, f" {dia.upper()}", ln=True, fill=True)
         pdf.ln(2)
-        
         for tiempo, plato in comidas.items():
-            if tiempo == "Colaciones":
-                for i, p in enumerate(plato, 1):
-                    pdf.set_font("Arial", "B", 10)
-                    pdf.cell(0, 5, f"Colación {i}: {p['nombre']}", ln=True)
-                    pdf.set_font("Arial", "I", 9)
-                    pdf.multi_cell(0, 5, f"-> Medida: {p['mh']} | Prep: {p['prep']}")
-                    pdf.ln(1)
-            else:
+            if tiempo == "Colaciones" and plato:
+                pdf.set_font("Arial", "B", 10)
+                pdf.cell(0, 5, "COLACIONES:", ln=True)
+                for p in plato:
+                    pdf.set_font("Arial", "", 9)
+                    pdf.multi_cell(0, 5, f"- {p['nombre']} ({p['mh']})")
+            elif tiempo != "Colaciones":
                 pdf.set_font("Arial", "B", 10)
                 pdf.cell(0, 5, f"{tiempo.upper()}: {plato['nombre']}", ln=True)
                 pdf.set_font("Arial", "", 9)
-                pdf.multi_cell(0, 5, f"-> Medida Hogareña: {plato['mh']}")
-                pdf.multi_cell(0, 5, f"-> Preparación: {plato['prep']}")
-            pdf.ln(2)
-        
+                pdf.multi_cell(0, 5, f"-> {plato['mh']} | {plato['prep']}")
+            pdf.ln(1)
         if pdf.get_y() > 250: pdf.add_page()
-        else: pdf.ln(3)
+        else: pdf.ln(2)
             
     return pdf.output(dest='S').encode('latin-1')
 
@@ -217,14 +230,30 @@ if st.button("🚀 GENERAR PLAN SIN REPETICIONES", key="btn_generar"):
         historial_col = (historial_col + [c["nombre"] for c in cols_hoy])[-4:]
 
 if st.session_state.menu:
-    for dia, comidas in st.session_state.menu.items():
-        with st.expander(f"📅 {dia}"):
-            for tiempo, plato in comidas.items():
-                if tiempo == "Colaciones":
-                    for p in plato: st.write(f"🔸 **Colación:** {p['nombre']}")
-                else:
-                    st.write(f"🍴 **{tiempo}:** {plato['nombre']}")
-
+    # ... (código de los expanders) ...
+    
     st.divider()
-    pdf_bytes = generar_pdf(nutri_info, {"nombre": nombre_pac, "edad": edad, "talla": talla_cm}, st.session_state.menu, {"diag": diag, "t_plan": t_plan, "kcal": kcal_final})
-    st.download_button("💾 DESCARGAR PDF", data=pdf_bytes, file_name="Plan_Variado.pdf", mime="application/pdf")
+    # Preparamos el diccionario con todos los datos calculados 
+    datos_para_pdf = {
+        "nombre": nombre_pac,
+        "edad": edad,
+        "talla": talla_cm,
+        "peso": peso_actual,
+        "imc": imc,
+        "p_obj": p_obj,
+        "af": af_sel
+    }
+    
+    pdf_bytes = generar_pdf(
+        nutri_info, 
+        datos_para_pdf, 
+        st.session_state.menu, 
+        {"diag": diag, "t_plan": t_plan, "kcal": kcal_final}
+    )
+    
+    st.download_button(
+        label="💾 DESCARGAR PLAN PROFESIONAL (PDF)",
+        data=pdf_bytes,
+        file_name=f"Plan_{nombre_pac.replace(' ', '_')}.pdf",
+        mime="application/pdf"
+    )
