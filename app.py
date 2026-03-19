@@ -5,7 +5,7 @@ import datetime
 
 st.set_page_config(page_title="NutriAsistente AR", layout="wide")
 
-# --- 1. FUNCIÓN TÉCNICA CORREGIDA PARA PDF ---
+# --- 1. FUNCIÓN TÉCNICA PARA PDF ---
 def generar_pdf(datos_nutri, datos_pac, menu, diag_info):
     pdf = FPDF()
     pdf.add_page()
@@ -29,7 +29,7 @@ def generar_pdf(datos_nutri, datos_pac, menu, diag_info):
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(5)
     
-    # Menú Semanal
+    # Menú Semanal en PDF
     for dia, comidas in menu.items():
         pdf.set_font("Arial", "B", 11)
         pdf.set_fill_color(240, 240, 240)
@@ -60,9 +60,9 @@ def generar_pdf(datos_nutri, datos_pac, menu, diag_info):
 # --- 2. DATOS DEL NUTRICIONISTA (Sidebar) ---
 st.sidebar.header("Configuración de Firma")
 nutri_info = {
-    "nombre": st.sidebar.text_input("Nombre y Apellido", "Lic. en Nutrición"),
-    "matricula": st.sidebar.text_input("Matrícula", "M.P. 0000"),
-    "contacto": st.sidebar.text_input("Contacto", "Email / Celular")
+    "nombre": st.sidebar.text_input("Nombre y Apellido", "Lic. en Nutrición", key="nutri_nom"),
+    "matricula": st.sidebar.text_input("Matrícula", "M.P. 0000", key="nutri_mat"),
+    "contacto": st.sidebar.text_input("Contacto", "Email / Celular", key="nutri_cont")
 }
 
 # --- 3. BASE DE DATOS ---
@@ -101,14 +101,14 @@ if 'menu' not in st.session_state: st.session_state.menu = {}
 st.title("Generador Nutricional Profesional 🍏")
 c1, c2, c3 = st.columns(3)
 with c1:
-    sexo = st.selectbox("Sexo", ["Femenino", "Masculino"])
-    nombre_pac = st.text_input("Nombre del Paciente", "Paciente Ejemplo")
-    edad = st.number_input("Edad", min_value=1, value=30)
+    sexo = st.selectbox("Sexo", ["Femenino", "Masculino"], key="sel_sexo")
+    nombre_pac = st.text_input("Nombre del Paciente", "Paciente Ejemplo", key="in_nom_pac")
+    edad = st.number_input("Edad", min_value=1, value=30, key="in_edad")
 with c2:
-    peso_actual = st.number_input("Peso Actual (kg)", value=75.0, step=0.1)
-    talla_cm = st.number_input("Talla (cm)", value=160.0, step=0.1)
+    peso_actual = st.number_input("Peso Actual (kg)", value=75.0, step=0.1, key="in_peso")
+    talla_cm = st.number_input("Talla (cm)", value=160.0, step=0.1, key="in_talla")
 with c3:
-    af_sel = st.selectbox("Actividad Física", ["Sedentario", "Leve", "Moderado", "Intenso"])
+    af_sel = st.selectbox("Actividad Física", ["Sedentario", "Leve", "Moderado", "Intenso"], key="sel_af")
     af_val = {"Sedentario": 1.2, "Leve": 1.3, "Moderado": 1.5, "Intenso": 1.7}[af_sel]
 
 talla_m = talla_cm / 100
@@ -132,36 +132,22 @@ else:
     label_p = "Peso Ideal (Broca)"
 
 cp1, cp2 = st.columns(2)
-p_obj = cp1.number_input(f"{label_p} - Sugerido", value=float(val_sugerido), key=f"p_{sexo}_{talla_cm}")
+p_obj = cp1.number_input(f"{label_p} - Sugerido", value=float(val_sugerido), key="in_p_obj")
 kcal_final = (p_obj * 22) * af_val
 cp2.info(f"**Prescripción:** {t_plan} de {kcal_final:.0f} kcal/día")
 
-# --- 6. MENÚ (Evitando Repetición) ---
+# --- 6. MENÚ (Sin repeticiones y con IDs únicos) ---
 st.divider()
 c_a, c_b = st.columns(2)
-alm_trabajo = c_a.checkbox("Almuerzo en el trabajo")
-colaciones_on = c_b.checkbox("Incluir colaciones (Mañana y Tarde)")
+# Agregamos 'key' única para solucionar el StreamlitDuplicateElementId
+alm_trabajo = c_a.checkbox("Almuerzo en el trabajo", key="check_trabajo")
+colaciones_on = c_b.checkbox("Incluir colaciones (Mañana y Tarde)", key="check_colaciones")
 
-if st.button("🚀 GENERAR PLAN"):
+if st.button("🚀 GENERAR PLAN", key="btn_generar"):
     dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-    t_a = "trabajo" if alm_trabajo else "ayc"
     
-    # Muestreo aleatorio de la base de datos para evitar repeticiones excesivas
-    # --- 6. MENÚ (Evitando errores de Sample) ---
-st.divider()
-c_a, c_b = st.columns(2)
-alm_trabajo = c_a.checkbox("Almuerzo en el trabajo")
-colaciones_on = c_b.checkbox("Incluir colaciones (Mañana y Tarde)")
-
-if st.button("🚀 GENERAR PLAN"):
-    dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-    t_a = "trabajo" if alm_trabajo else "ayc"
-    
-    # Usamos random.choices para evitar el ValueError si la lista es corta
-    # y aseguramos una cantidad suficiente de platos
     def obtener_lista_segura(clave, cantidad):
         base = st.session_state.db[clave]
-        # Multiplicamos la lista para tener variedad, pero usamos choices para que no falle
         return random.choices(base, k=cantidad)
 
     pool_dym = obtener_lista_segura("dym", 14)
@@ -178,3 +164,28 @@ if st.button("🚀 GENERAR PLAN"):
             "Cena": pool_ayc[i+7],
             "Colaciones": [pool_col[i*2], pool_col[i*2+1]] if colaciones_on else []
         }
+
+if st.session_state.menu:
+    for dia, comidas in st.session_state.menu.items():
+        with st.expander(f"📅 {dia}"):
+            for tiempo, plato in comidas.items():
+                if tiempo == "Colaciones":
+                    for p in plato: st.write(f"🔸 **Colación:** {p['nombre']}")
+                else:
+                    ci, cb = st.columns([0.9, 0.1])
+                    ci.write(f"🍴 **{tiempo}:** {plato['nombre']}")
+                    # Botón de intercambio con ID único por día y tiempo
+                    if cb.button("🔄", key=f"refresh_{dia}_{tiempo}"):
+                        t = "dym" if tiempo in ["Desayuno", "Merienda"] else ("trabajo" if (tiempo == "Almuerzo" and alm_trabajo) else "ayc")
+                        st.session_state.menu[dia][tiempo] = random.choice(st.session_state.db[t])
+                        st.rerun()
+
+    st.divider()
+    pdf_bytes = generar_pdf(nutri_info, {"nombre": nombre_pac, "edad": edad}, st.session_state.menu, {"diag": diag, "t_plan": t_plan, "kcal": kcal_final})
+    st.download_button(
+        label="💾 DESCARGAR PDF PROFESIONAL", 
+        data=pdf_bytes, 
+        file_name=f"Plan_{nombre_pac.replace(' ', '_')}.pdf", 
+        mime="application/pdf",
+        key="btn_descarga_pdf"
+    )
