@@ -247,72 +247,83 @@ datos_antropometricos = {
     "af": af_sel
 }
 
-# --- 6. GENERACIÓN DEL MENÚ ---
+# --- 6. GENERACIÓN DEL MENÚ CON LÓGICA DE FIN DE SEMANA ---
 st.divider()
 c_a, c_b = st.columns(2)
-alm_trabajo = c_a.checkbox("Almuerzo en el trabajo", key="check_trabajo")
+alm_trabajo = c_a.checkbox("Almuerzo en el trabajo (Lun a Vie)", key="check_trabajo")
 colaciones_on = c_b.checkbox("Incluir colaciones", key="check_colaciones")
 
-# BOTÓN RENOMBRADO Y FUNCIONAL
-if st.button("🚀 GENERAR PLAN SEMANAL", key="btn_generar_v2"):
+if st.button("🚀 GENERAR PLAN SEMANAL", key="btn_generar_vfinal"):
     dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     st.session_state.menu = {}
     historial_ayc = []
     historial_dym = []
 
     for d in dias:
-        # --- Selección de platos principales (D&M y A&C) ---
+        # Selección de Desayuno y Merienda
         pool_dym = [x for x in st.session_state.db["dym"] if x["nombre"] not in historial_dym]
         dym_hoy = random.sample(pool_dym if len(pool_dym) >= 2 else st.session_state.db["dym"], 2)
         
-        if alm_trabajo:
+        # Lógica de Almuerzo: Si es finde o no marcó trabajo, usa base general. Si es semana y marcó, usa viandas.
+        es_finde = d in ["Sábado", "Domingo"]
+        
+        if alm_trabajo and not es_finde:
             pool_trab = [x for x in st.session_state.db["trabajo"] if x["nombre"] not in historial_ayc]
             almuerzo = random.choice(pool_trab if pool_trab else st.session_state.db["trabajo"])
-            pool_cena = [x for x in st.session_state.db["ayc"] if x["nombre"] not in historial_ayc and x["nombre"] != almuerzo["nombre"]]
-            cena = random.choice(pool_cena if pool_cena else st.session_state.db["ayc"])
         else:
             pool_ayc = [x for x in st.session_state.db["ayc"] if x["nombre"] not in historial_ayc]
-            ayc_hoy = random.sample(pool_ayc if len(pool_ayc) >= 2 else st.session_state.db["ayc"], 2)
-            almuerzo, cena = ayc_hoy[0], ayc_hoy[1]
+            almuerzo = random.choice(pool_ayc if pool_ayc else st.session_state.db["ayc"])
             
-        # --- Lógica de Colaciones ---
+        # Cena siempre de la base general
+        pool_cena = [x for x in st.session_state.db["ayc"] if x["nombre"] not in historial_ayc and x["nombre"] != almuerzo["nombre"]]
+        cena = random.choice(pool_cena if pool_cena else st.session_state.db["ayc"])
+            
         col_m, col_t = None, None
         if colaciones_on:
             c_hoy = random.sample(st.session_state.db["col"], 2)
             col_m, col_t = c_hoy[0], c_hoy[1]
 
-        # Guardado estructurado
         st.session_state.menu[d] = {
-            "Desayuno": dym_hoy[0],
-            "Colacion_M": col_m,
-            "Almuerzo": almuerzo,
-            "Merienda": dym_hoy[1],
-            "Colacion_T": col_t,
-            "Cena": cena
+            "Desayuno": dym_hoy[0], "Colacion_M": col_m, "Almuerzo": almuerzo,
+            "Merienda": dym_hoy[1], "Colacion_T": col_t, "Cena": cena
         }
         
         historial_ayc = (historial_ayc + [almuerzo["nombre"], cena["nombre"]])[-6:]
         historial_dym = (historial_dym + [dym_hoy[0]["nombre"], dym_hoy[1]["nombre"]])[-6:]
 
-# --- 7. VISUALIZACIÓN Y DESCARGA (CORREGIDO) ---
+# --- 7. VISTA PREVIA CON BOTONES DE INTERCAMBIO ---
 if st.session_state.menu:
-    st.subheader("Vista Previa del Plan")
+    st.subheader("Vista Previa y Ajustes Individuales")
+    st.caption("Si un plato no te convence, hacé clic en '🔄' para cambiarlo por otro.")
+    
     for dia, comidas in st.session_state.menu.items():
         with st.expander(f"📅 {dia.upper()}"):
-            # Definimos el orden lógico de visualización
             orden_visual = ["Desayuno", "Colacion_M", "Almuerzo", "Merienda", "Colacion_T", "Cena"]
             
             for tiempo in orden_visual:
                 plato = comidas.get(tiempo)
-                # Verificamos que el plato exista y no sea None antes de escribirlo
-                if plato and isinstance(plato, dict) and "nombre" in plato:
-                    # Formateamos el nombre del tiempo de comida para que quede lindo
+                if plato:
+                    col_txt, col_btn = st.columns([0.85, 0.15])
                     label = tiempo.replace("Colacion_M", "Colación Mañana").replace("Colacion_T", "Colación Tarde")
-                    st.write(f"🍴 **{label}:** {plato['nombre']}")
-    
+                    col_txt.write(f"🍴 **{label}:** {plato['nombre']}")
+                    
+                    # BOTÓN DE INTERCAMBIO INDIVIDUAL
+                    if col_btn.button("🔄", key=f"btn_{dia}_{tiempo}"):
+                        if "Colacion" in tiempo:
+                            nueva_opcion = random.choice(st.session_state.db["col"])
+                        elif tiempo in ["Desayuno", "Merienda"]:
+                            nueva_opcion = random.choice(st.session_state.db["dym"])
+                        elif tiempo == "Almuerzo" and alm_trabajo and dia not in ["Sábado", "Domingo"]:
+                            nueva_opcion = random.choice(st.session_state.db["trabajo"])
+                        else:
+                            nueva_opcion = random.choice(st.session_state.db["ayc"])
+                        
+                        st.session_state.menu[dia][tiempo] = nueva_opcion
+                        st.rerun()
+
     st.divider()
     
-    # Preparamos los datos finales para el PDF asegurando que todos los indicadores existan
+    # --- GENERACIÓN DE PDF FINAL ---
     try:
         pdf_bytes = generar_pdf(
             nutri_info, 
@@ -325,8 +336,7 @@ if st.session_state.menu:
             label="💾 DESCARGAR PLAN PROFESIONAL (PDF)",
             data=pdf_bytes,
             file_name=f"Plan_{nombre_pac.replace(' ', '_')}.pdf",
-            mime="application/pdf",
-            key="btn_descarga_final"
+            mime="application/pdf"
         )
     except Exception as e:
-        st.error(f"Hubo un error al generar el PDF: {e}")
+        st.error(f"Error al preparar el PDF: {e}")
