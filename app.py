@@ -62,9 +62,8 @@ nutri_info = {
     "contacto": st.sidebar.text_input("Contacto", "Email / Celular", key="nutri_cont")
 }
 
-# --- 3. BASE DE DATOS INTEGRADA (AMPLIADA) ---
+# --- 3. BASE DE DATOS ULTRA AMPLIADA ---
 def cargar_db():
-    # 20 Opciones de Almuerzo y Cena
     ayc = [
         {"nombre": "Milanesa de peceto con puré de calabaza", "mh": "1 unid. med. y 1 taza de puré", "prep": "Al horno con rocío vegetal."},
         {"nombre": "Filet de merluza al limón con ensalada", "mh": "1 filet grande y 1 plato playo", "prep": "Pescado a la plancha."},
@@ -85,19 +84,35 @@ def cargar_db():
         {"nombre": "Brochetas de carne y vegetales", "mh": "3 unidades", "prep": "A la plancha con morrón y cebolla."},
         {"nombre": "Omelette de espinaca y queso magro", "mh": "1 unidad grande", "prep": "Hecho con 2 huevos y espinaca."},
         {"nombre": "Pechuga de pollo a la mostaza con puré", "mh": "1 pechuga chica", "prep": "Mostaza sin azúcar y puré de papas."},
-        {"nombre": "Berenjenas a la parmesana (light)", "mh": "2 rodajas grandes", "prep": "Al horno con salsa y queso magro."}
+        {"nombre": "Berenjenas a la parmesana (light)", "mh": "2 rodajas grandes", "prep": "Al horno con salsa y queso magro."},
+        {"nombre": "Hamburguesas de mijo y calabaza", "mh": "2 unidades", "prep": "Cereal hervido y puré."},
+        {"nombre": "Colita de cuadril al horno con vegetales", "mh": "2 rodajas finas", "prep": "Carne magra asada."},
+        {"nombre": "Risotto de cebada perlada y hongos", "mh": "1 plato mediano", "prep": "Cebada bien cocida."},
+        {"nombre": "Budín de acelga y zanahoria", "mh": "1 porción grande", "prep": "Con claras de huevo."},
+        {"nombre": "Fajitas de carne (tortilla integral)", "mh": "2 unidades", "prep": "Tiras de carne y vegetales."},
+        {"nombre": "Albóndigas de pollo con puré de manzana", "mh": "4 unidades chicas", "prep": "Pollo procesado al horno."},
+        {"nombre": "Ensalada Rusa Saludable", "mh": "1 bowl mediano", "prep": "Con mayonesa light o yogur natural."},
+        {"nombre": "Tomates rellenos con arroz y atún", "mh": "2 unidades", "prep": "Arroz integral y atún al natural."},
+        {"nombre": "Pizza con masa de alcaucil o coliflor", "mh": "2 porciones", "prep": "Base de vegetal y queso magro."},
+        {"nombre": "Soufflé de calabaza y queso", "mh": "1 porción abundante", "prep": "Con claras batidas a nieve."},
+        {"nombre": "Lomo a la pimienta con chauchas", "mh": "1 bife mediano", "prep": "Chauchas al vapor."},
+        {"nombre": "Pollo al verdeo con batatas asadas", "mh": "1 presa chica", "prep": "Cebolla de verdeo y poco aceite."},
+        {"nombre": "Croquetas de arroz integral y espinaca", "mh": "3 unidades med.", "prep": "Al horno."},
+        {"nombre": "Tarta de choclo y cebolla (sin tapa)", "mh": "1/4 de unidad", "prep": "Relleno de choclo cremoso light."},
+        {"nombre": "Pescado a la provenzal con ensalada", "mh": "1 filet grande", "prep": "Ajo y perejil fresco."}
     ]
-    # Opciones de Almuerzo en el Trabajo (Viandas rápidas)
     trabajo = [
         {"nombre": "Sándwich integral de pollo y rúcula", "mh": "2 rodajas de pan", "prep": "Pollo hervido."},
         {"nombre": "Ensalada de arroz, atún y arvejas", "mh": "1 bowl mediano", "prep": "Atún al natural."},
         {"nombre": "Tarta de acelga y queso (vianda)", "mh": "1 porción grande", "prep": "Masa de salvado."},
         {"nombre": "Wrap de carne y vegetales", "mh": "1 unidad grande", "prep": "Tortilla integral."},
         {"nombre": "Ensalada de fideos fríos y vegetales", "mh": "1 bowl mediano", "prep": "Fideos tirabuzón y tomate."},
-        {"nombre": "Ensalada de lentejas, tomate y zanahoria", "mh": "1 bowl mediano", "prep": "Lentejas hervidas y vegetales crudos."},
-        {"nombre": "Rollitos de jamón cocido y queso con ensalada", "mh": "3 rollitos", "prep": "Jamón cocido natural y queso magro."}
+        {"nombre": "Ensalada de lentejas, tomate y zanahoria", "mh": "1 bowl mediano", "prep": "Lentejas hervidas."},
+        {"nombre": "Rollitos de jamón y queso con ensalada", "mh": "3 rollitos", "prep": "Jamón cocido natural."},
+        {"nombre": "Arroz con pollo (versión fría)", "mh": "1 bowl mediano", "prep": "Pollo picado y arroz integral."},
+        {"nombre": "Salpicón de ave y vegetales", "mh": "1 plato abundante", "prep": "Todo picado con vinagreta liviana."},
+        {"nombre": "Empanadas de carne o verdura", "mh": "2 unidades", "prep": "Al horno."}
     ]
-    # Desayuno y Merienda
     dym = [
         {"nombre": "Infusión con tostadas integrales y queso", "mh": "1 taza y 2 tostadas", "prep": "Queso descremado."},
         {"nombre": "Yogur descremado con granola y banana", "mh": "1 pote y 1/2 banana", "prep": "Mezclar al momento."},
@@ -108,18 +123,26 @@ def cargar_db():
         {"nombre": "Fruta con frutos secos", "mh": "1 bowl chico", "prep": "Fruta picada y 3 nueces."},
         {"nombre": "Galletitas de arroz con queso y mermelada", "mh": "3 unidades", "prep": "Queso blanco descremado."},
         {"nombre": "Licuado de banana con leche descremada", "mh": "1 vaso grande", "prep": "Sin azúcar agregada."},
-        {"nombre": "Omelette dulce de claras y manzana", "mh": "1 unidad", "prep": "Manzana rallada y claras."}
+        {"nombre": "Omelette dulce de claras y manzana", "mh": "1 unidad", "prep": "Manzana rallada."},
+        {"nombre": "Rebanada de pan integral con palta y huevo", "mh": "1 unidad", "prep": "Huevo poché o revuelto."},
+        {"nombre": "Yogur con semillas de chía y arándanos", "mh": "1 pote", "prep": "Dejar hidratar las semillas."},
+        {"nombre": "Café con leche y galletas integrales", "mh": "1 taza y 4 galletas", "prep": "Sin azúcar."},
+        {"nombre": "Bowl de avena cocida con canela", "mh": "1 taza chica", "prep": "Cocida con agua o leche descr."},
+        {"nombre": "Infusión con 1 porción de bizcochuelo casero", "mh": "1 rodaja fina", "prep": "Hecho con aceite y sin azúcar."}
     ]
-    # Colaciones
     col = [
         {"nombre": "Fruta de estación", "mh": "1 unidad", "prep": "Lavar bien."},
         {"nombre": "Yogur descremado", "mh": "1 pote", "prep": "Natural."},
         {"nombre": "Huevo duro", "mh": "1 unidad", "prep": "Hervido."},
         {"nombre": "Gelatina diet", "mh": "1 compotera", "prep": "Con fruta."},
         {"nombre": "Puñado de almendras", "mh": "10 unidades", "prep": "Crudas."},
-        {"nombre": "Bastoncitos de zanahoria", "mh": "1 taza", "prep": "Crudos y frescos."},
-        {"nombre": "Queso magro en cubitos", "mh": "1 feta gruesa", "prep": "Queso tipo Tybo light."},
-        {"nombre": "Tomates cherry", "mh": "10 unidades", "prep": "Lavar y servir."}
+        {"nombre": "Bastoncitos de zanahoria", "mh": "1 taza", "prep": "Crudos."},
+        {"nombre": "Queso magro en cubitos", "mh": "1 feta gruesa", "prep": "Tipo Tybo light."},
+        {"nombre": "Tomates cherry", "mh": "10 unidades", "prep": "Frescos."},
+        {"nombre": "Pickles caseros", "mh": "1 compotera chica", "prep": "Bajos en sodio."},
+        {"nombre": "Media palta chica", "mh": "1/2 unidad", "prep": "Con limón."},
+        {"nombre": "Barrita de cereal casera", "mh": "1 unidad", "prep": "Sin azúcar agregada."},
+        {"nombre": "Cucharada de semillas de girasol", "mh": "1 cda. sopera", "prep": "Tostadas sin sal."}
     ]
     return {"dym": dym, "ayc": ayc, "trabajo": trabajo, "col": col}
 
