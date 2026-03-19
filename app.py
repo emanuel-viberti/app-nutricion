@@ -220,14 +220,14 @@ alm_trabajo = c_a.checkbox("Almuerzo en el trabajo", key="check_trabajo")
 colaciones_on = c_b.checkbox("Incluir colaciones", key="check_colaciones")
 
 # BOTÓN RENOMBRADO Y FUNCIONAL
-if st.button("🚀 GENERAR PLAN SEMANAL", key="btn_generar_principal"):
+if st.button("🚀 GENERAR PLAN SEMANAL", key="btn_generar_v2"):
     dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     st.session_state.menu = {}
     historial_ayc = []
     historial_dym = []
 
     for d in dias:
-        # Lógica de no repetición (3 días)
+        # --- Selección de platos principales (D&M y A&C) ---
         pool_dym = [x for x in st.session_state.db["dym"] if x["nombre"] not in historial_dym]
         dym_hoy = random.sample(pool_dym if len(pool_dym) >= 2 else st.session_state.db["dym"], 2)
         
@@ -241,11 +241,22 @@ if st.button("🚀 GENERAR PLAN SEMANAL", key="btn_generar_principal"):
             ayc_hoy = random.sample(pool_ayc if len(pool_ayc) >= 2 else st.session_state.db["ayc"], 2)
             almuerzo, cena = ayc_hoy[0], ayc_hoy[1]
             
+        # --- Lógica de Colaciones ---
+        col_m, col_t = None, None
+        if colaciones_on:
+            c_hoy = random.sample(st.session_state.db["col"], 2)
+            col_m, col_t = c_hoy[0], c_hoy[1]
+
+        # Guardado estructurado
         st.session_state.menu[d] = {
-            "Desayuno": dym_hoy[0], "Almuerzo": almuerzo, 
-            "Merienda": dym_hoy[1], "Cena": cena, 
-            "Colaciones": random.sample(st.session_state.db["col"], 2) if colaciones_on else []
+            "Desayuno": dym_hoy[0],
+            "Colacion_M": col_m,
+            "Almuerzo": almuerzo,
+            "Merienda": dym_hoy[1],
+            "Colacion_T": col_t,
+            "Cena": cena
         }
+        
         historial_ayc = (historial_ayc + [almuerzo["nombre"], cena["nombre"]])[-6:]
         historial_dym = (historial_dym + [dym_hoy[0]["nombre"], dym_hoy[1]["nombre"]])[-6:]
 
